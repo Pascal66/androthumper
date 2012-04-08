@@ -1,0 +1,62 @@
+package constants;
+public class Conts {
+	/**Code for server alerting of driver error. */
+	public static final byte UTILS_MESSAGE_TYPE_DRIVER_ERROR = 2;
+	
+	public static class Ports{
+		/**Port on server to listen for camera packets. */
+		public static final int CAMERA_INCOMMING_PORT = 9000;
+		/**Port on server to listen for sensor packets. */
+		public static final int SENSOR_INCOMING_PORT = 9001;
+		/**Port on server to listen for utilities packets. */
+		public static final int UTILS_INCOMMING_PORT = 9002;
+		/**Port on server to listen for movement packets. */
+		public static final int MOVE_INCOMMING_PORT = 9003;
+		/**Port on server to listen for location packets. */
+		public static final int GPS_INCOMMING_PORT = 9004;
+	}
+	
+	public static class PacketSize{
+		/**Size of camera packet header. */
+		public static final int CAMERA_HEADER_SIZE = 5;
+		/**Total size of camera packet. */
+		public static final int CAMERA_PACKET_SIZE = 2000;
+		/**Size of sensor packet. */
+		public static final int SENSORS_PACKET_SIZE = 12;
+		/**Size of utilities packet. First byte is code, rest is up to you. */
+		public static final int UTILS_CONTROL_PACKET_SIZE = 2000;
+		/**Size of the movement packet. 10 bytes for buttons,  1 byte for steering, 1 byte for gas/brake. One spare.*/
+		public static final int MOVE_PACKET_SIZE = 12;
+		/** CODE + 8 bytes for double lat, 8 bytes for double lng, 8 bytes for double altitude, 4 bytes for float speed, 4 bytes for float accuracy*/
+		public static final int GPS_POSITION_PACKET_SIZE = 33;
+		/** CODE + 6 sats * (4bytes for SNR, 1 byte for used in prn, 1byte for used (1 used, 0 not used)*/
+		public static final int GPS_STATUS_PACKET_SIZE = 37;
+	}
+	
+	public static class UtilsCodes{
+		/**Code to enable location updates. */
+		public static final byte ENABLE_GPS = 0;
+		/**Code to disable location updates. */
+		public static final byte DISABLE_GPS = 1;
+		
+		/**Code to enable GPS status updates. */
+		public static final byte ENABLE_GPS_STATUS = 6;
+		/**Code to disable GPS status updates. */
+		public static final byte DISABLE_GPS_STATUS = 7;
+		
+		/**Code to enable camera feed. */
+		public static final byte ENABLE_CAM = 2;
+		/**Code to disable camera feed. */
+		public static final byte DISABLE_CAM = 3;
+		
+		/**Code to enable sensors. */
+		public static final byte ENABLE_SENSORS = 4;
+		/**Code to disable sensors. */
+		public static final byte DISABLE_SENSORS = 5;
+		
+		/**Code using to define a location packet. */
+		public static final int GPS_POSITION_CODE = 1;
+		/**Code used to define a status packet. */
+		public static final int GPS_STATUS_CODE = 0;
+	}
+}
