@@ -50,7 +50,8 @@ public class MovementThread implements Runnable{
 	}
 
 	/**
-	 * Construct the packet with the data and send it to the sever.
+	 * Construct the packet with the data and send it to the sever. Also performs the mixing of the left/right
+	 * side to give the feel of driving a normal car.
 	 * @param buttons - The array of button values (1=pressed, 0=released)
 	 * @param LStick - The float x/y values of the left stick
 	 * @param RStick - the float x/y values of the right stick
@@ -99,19 +100,14 @@ public class MovementThread implements Runnable{
 				}
 			}
 			
-			input[10] = (byte)rSpeed;
-			input[11] = (byte)lSpeed;
+			if(RStick[1] > 0.5){
+				input[10] = (byte)-rSpeed;
+				input[11] = (byte)-lSpeed;
+			}else{
+				input[10] = (byte)rSpeed;
+				input[11] = (byte)lSpeed;
+			}
 			
-//			input[10] = (byte) (100 * -LStick[0]);
-//			if(RStick[1] > MovementThread.BRAKE_THRESH){
-//				input[11] = (byte) (-100* RStick[1]);
-//			}else if(triggers[1] > MovementThread.ACCEL_THRESH){
-//				input[11] = (byte) (100* triggers[1]);
-//			}else{
-//				input[11] = 0;
-//			}
-			System.out.println("RIGHT: "+(byte)rSpeed+" LEFT: "+(byte)lSpeed);
-			//packet = new DatagramPacket(input, Conts.PacketSize.MOVE_PACKET_SIZE, phoneAddress, phonePort);
 			packet.setData(input);
 			try {
 				socket.send(packet);
