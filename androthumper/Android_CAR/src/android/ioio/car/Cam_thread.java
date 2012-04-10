@@ -47,9 +47,11 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package android.ioio.car;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.zip.Deflater;
 
 import org.opencv.android.Utils;
@@ -76,7 +78,7 @@ public class Cam_thread implements Runnable{
 	/**The size of the header in each packet. */
 	private static int HEADER_SIZE = Conts.PacketSize.CAMERA_HEADER_SIZE;
 	/**The size of available data n each packet. */
-	public static int DATAGRAM_MAX_SIZE = Conts.PacketSize.CAMERA_PACKET_SIZE - HEADER_SIZE;	
+	public static int DATAGRAM_MAX_SIZE = Conts.PacketSize.CAMERA_PACKET_SIZE - Conts.PacketSize.CAMERA_HEADER_SIZE;	
 	private int frame_nb = 0;	
 	/**The address of the server to send packets to. */
 	private InetAddress serverAddr;
@@ -91,7 +93,9 @@ public class Cam_thread implements Runnable{
 	private int packetCount;
 	/**The number of packets for a frame. */
 	private int nb_packets;
-	private int size,count;
+	/**The amount of bytes in the packet available for data. */
+	private int size;
+	private int count;
 	/**An output stream to store the bitmap data in. */
 	private ByteArrayOutputStream byteStream;
 	/**An output stream to store the compressed data in. */
@@ -200,18 +204,22 @@ public class Cam_thread implements Runnable{
 			//Number of packets used for this bitmap UNCOMPRESSED
 			//nb_packets = (int) Math.ceil(picData.length / (float)DATAGRAM_MAX_SIZE);
 
-			//How many packets it takes for our compressed data
+			//How many packets it takes for our compressed data, including headers for each packet
 			//Log.e(TAG,"COMPRESSED SIZE: "+compressedData.length);
-			nb_packets = (int)Math.ceil(compressedData.length / (float)DATAGRAM_MAX_SIZE);
+			nb_packets = (int)Math.ceil(compressedData.length / ((float)DATAGRAM_MAX_SIZE));
 			size = DATAGRAM_MAX_SIZE;
-
 			/* Loop through slices of the bitmap*/
-			for(packetCount = 0; packetCount < nb_packets; packetCount++){
 
+			for(packetCount = 0; packetCount < nb_packets; packetCount++){
+				
 				//If we are on the last packet... or we only need one packet
 				if(packetCount >=0 && packetCount == nb_packets-1){
 					//Set the size of this packet to be whatever we have not used up in the previous packets
 					size = compressedData.length - packetCount * DATAGRAM_MAX_SIZE;
+				}
+				
+				if(size > DATAGRAM_MAX_SIZE){
+					Log.e("errpr","error");
 				}
 
 				/* Set additional header */
@@ -219,8 +227,11 @@ public class Cam_thread implements Runnable{
 				data[0] = (byte)frame_nb;
 				data[1] = (byte)nb_packets;
 				data[2] = (byte)packetCount;
+				//smallest 8 bits
+				data[3] = (byte)(size >> 8);
+				//biggest 8 bits
 				data[4] = (byte)size;
-
+				
 				/* Copy current slice to byte array */
 				System.arraycopy(compressedData, packetCount * DATAGRAM_MAX_SIZE, data, HEADER_SIZE, size);		
 

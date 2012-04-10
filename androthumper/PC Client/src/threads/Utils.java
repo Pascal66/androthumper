@@ -119,13 +119,13 @@ public class Utils{
 		public void run() {
 			while(running){
 				if(!recievedPing){
-					Window.PrintToLog("Utils waiting for ping.");
+					Window.PrintToLog("Utils wait.");
 				}
 				
 				try {
 					listeningSocket.receive(listenPacket);
 					if(!recievedPing){
-						Window.PrintToLog("Utils recieved ping.");
+						Window.PrintToLog("Utils got.");
 						byte[] data = listenPacket.getData();
 						ByteArrayInputStream bais = new ByteArrayInputStream(data);
 						DataInputStream dis = new DataInputStream(bais);

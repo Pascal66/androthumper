@@ -45,7 +45,7 @@ public class GPSThread implements Runnable{
 			
 			listeningThread = new Thread(this);
 			listeningThread.start();
-			Window.PrintToLog("GPS listening...");
+			Window.PrintToLog("GPS listening.");
 		} catch (SocketException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {

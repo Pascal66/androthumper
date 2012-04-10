@@ -66,16 +66,53 @@ public class MovementThread implements Runnable{
 				}
 			}
 
-			input[10] = (byte) (100 * -LStick[0]);
-			if(RStick[1] > MovementThread.BRAKE_THRESH){
-				input[11] = (byte) (-100* RStick[1]);
-			}else if(triggers[1] > MovementThread.ACCEL_THRESH){
-				input[11] = (byte) (100* triggers[1]);
-			}else{
-				input[11] = 0;
+			int speed = (int)((127/(float)100) * (triggers[1] * 100));
+			
+			int rSpeed,lSpeed;
+			lSpeed = rSpeed = speed;
+			
+			if(LStick[0] > 0.1){
+				//RIGHT (slow left)
+				if(speed < 5){
+					if(buttons[Conts.Controller.Buttons.BUTTON_Y]){
+						//lock left
+						rSpeed = (int)(127/(float)100 * (LStick[0]*100));
+					}else{
+						lSpeed = (int)(127/(float)100 * (-LStick[0]*100));
+						rSpeed = (int)(127/(float)100 * (LStick[0]*100));
+					}
+				}else{
+					lSpeed = lSpeed - (int) (lSpeed * LStick[0]);
+				}
+			}else if(LStick[0] < -0.1){
+				//LEFT (slow right)
+				if(speed < 5){
+					if(buttons[Conts.Controller.Buttons.BUTTON_Y]){
+						//Lock right
+						lSpeed = (int)(127/(float)100 * (-LStick[0]*100));
+					}else{
+						lSpeed = (int)(127/(float)100 * (-LStick[0]*100));
+						rSpeed = (int)(127/(float)100 * (LStick[0]*100));
+					}
+				}else{
+					rSpeed = rSpeed - (int) (rSpeed * -LStick[0]);
+				}
 			}
-
-			packet = new DatagramPacket(input, Conts.PacketSize.MOVE_PACKET_SIZE, phoneAddress, phonePort);
+			
+			input[10] = (byte)rSpeed;
+			input[11] = (byte)lSpeed;
+			
+//			input[10] = (byte) (100 * -LStick[0]);
+//			if(RStick[1] > MovementThread.BRAKE_THRESH){
+//				input[11] = (byte) (-100* RStick[1]);
+//			}else if(triggers[1] > MovementThread.ACCEL_THRESH){
+//				input[11] = (byte) (100* triggers[1]);
+//			}else{
+//				input[11] = 0;
+//			}
+			System.out.println("RIGHT: "+(byte)rSpeed+" LEFT: "+(byte)lSpeed);
+			//packet = new DatagramPacket(input, Conts.PacketSize.MOVE_PACKET_SIZE, phoneAddress, phonePort);
+			packet.setData(input);
 			try {
 				socket.send(packet);
 			} catch (IOException e) {
@@ -87,13 +124,14 @@ public class MovementThread implements Runnable{
 	@Override
 	public void run() {
 		//Wait to recieve a ping from a client, then store the address and send the data back to it.
-		Window.PrintToLog("Movement thread waiting for ping.");
+		Window.PrintToLog("Move wait.");
 		DatagramPacket packet = new DatagramPacket(new byte[1], 1);
 		try {
 			socket.receive(packet);
-			Window.PrintToLog("Movement thread recieved ping.");
+			Window.PrintToLog("Move got.");
 			phoneAddress = packet.getAddress();
 			phonePort = packet.getPort();
+			this.packet = new DatagramPacket(new byte[]{1}, 1, phoneAddress, phonePort);
 			waitingForPing = false;
 		} catch (IOException e) {
 			e.printStackTrace();

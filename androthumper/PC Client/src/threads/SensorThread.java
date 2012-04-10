@@ -50,7 +50,7 @@ public class SensorThread implements Runnable{
 	
 	@Override
 	public void run() {
-		Window.PrintToLog("Sensor thread listening...");
+		Window.PrintToLog("Sensor listen.");
 		
 		while(running){
 			try {
@@ -82,7 +82,7 @@ public class SensorThread implements Runnable{
 			}
 		}
 		
-		Window.PrintToLog("Sensor thread terminating.");
+		Window.PrintToLog("Sensor closed.");
 	}
 
 }

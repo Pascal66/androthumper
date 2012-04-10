@@ -44,7 +44,7 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*******************************************************************************************************/
+ *******************************************************************************************************/
 
 
 import java.io.BufferedReader;
@@ -70,39 +70,39 @@ import ui.Window;
  *
  */
 public class CamThread implements Runnable{
-	
+
 	/**The host frame, where to send the image. */
-    private Window window;
-    /**The looping receiving thread. */
-    private Thread t;
-    /**An inflater used to uncompress the received byte[]. */
-    private Inflater uncompressor;
+	private Window window;
+	/**The looping receiving thread. */
+	private Thread t;
+	/**An inflater used to uncompress the received byte[]. */
+	private Inflater uncompressor;
 	public static int DATA_MAX_SIZE = Conts.PacketSize.CAMERA_PACKET_SIZE - Conts.PacketSize.CAMERA_HEADER_SIZE;
 	/**Flag to signify whether the thread is allowed to run or not. */
 	private boolean running = true;
 
-    public CamThread(Window window2){
-    	window = window2;
-    	uncompressor = new Inflater();
+	public CamThread(Window window2){
+		window = window2;
+		uncompressor = new Inflater();
 
-        try{
-        	t = new Thread(this);
-        	t.start();
-        }catch (Exception e){e.printStackTrace();}
-    }
-    
-    public void run(){
-        Window.PrintToLog("Cam Thread: Cam thread waiting...");
-		  
-        handleConnection_UDP();
-    }
-    
-    /**
-     * Find the internal/external address of the server and display it on the log.
-     * Then constant loops while allowed receiving sets of packets, creating images from
-     * complete sets, then setting the image on the GUI.
-     */
-    public void handleConnection_UDP() {
+		try{
+			t = new Thread(this);
+			t.start();
+		}catch (Exception e){e.printStackTrace();}
+	}
+
+	public void run(){
+		Window.PrintToLog("Cam wait.");
+
+		handleConnection_UDP();
+	}
+
+	/**
+	 * Find the internal/external address of the server and display it on the log.
+	 * Then constant loops while allowed receiving sets of packets, creating images from
+	 * complete sets, then setting the image on the GUI.
+	 */
+	public void handleConnection_UDP() {
 		int current_frame = -1,frame_nb,nb_packets,packet_nb,size_packet;
 		int slicesStored = 0;
 		byte[] imageData = null, data = null,buff = null;
@@ -114,15 +114,15 @@ public class CamThread implements Runnable{
 			BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));
 
 			String ip = in.readLine(); //you get the IP as a String
-			Window.PrintToLog("Cam Thread: External ip = "+ip);
-			
+			Window.PrintToLog("ip1 = "+ip);
+
 			InetAddress serverAddr = InetAddress.getLocalHost();
-			Window.PrintToLog("Cam Thread: PC IP address: " + serverAddr.getHostAddress());
+			Window.PrintToLog("ip2 = " + serverAddr.getHostAddress());
 			socket = new DatagramSocket(Conts.Ports.CAMERA_INCOMMING_PORT, serverAddr);
 
 			byte[] buffer = new byte[Conts.PacketSize.CAMERA_PACKET_SIZE];
 			DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-			
+
 			while (running){				
 				socket.receive(packet);				
 				data = packet.getData();			
@@ -130,18 +130,18 @@ public class CamThread implements Runnable{
 				nb_packets = (int)data[1];
 				packet_nb = (int)data[2];
 				size_packet = (int) ((data[3] & 0xff) << 8 | (data[4] & 0xff));
-		
+
 				//Start of a new bitmap
 				if((packet_nb==0) && (current_frame != frame_nb)){
 					current_frame = frame_nb;
 					slicesStored = 0;				
 					imageData = new byte[nb_packets * DATA_MAX_SIZE];
 				}
-				
+
 				//Still on current bitmap
 				if(frame_nb == current_frame){
-						System.arraycopy(data, Conts.PacketSize.CAMERA_HEADER_SIZE, imageData, packet_nb * DATA_MAX_SIZE, size_packet);
-						slicesStored++;				
+					System.arraycopy(data, Conts.PacketSize.CAMERA_HEADER_SIZE, imageData, packet_nb * DATA_MAX_SIZE, size_packet);
+					slicesStored++;				
 				}
 
 				/* If image is complete display it */
@@ -153,9 +153,11 @@ public class CamThread implements Runnable{
 					bos.reset();
 					uncompressor.reset();
 					uncompressor.setInput(imageData);
+					int totalRead = 0;
 					while(!uncompressor.finished()){
 						uncompressor.inflate(buff, 0, 1024);
 						bos.write(buff);
+
 					}
 					//ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
 					window.setImage(bos.toByteArray());
@@ -167,10 +169,10 @@ public class CamThread implements Runnable{
 		} catch (DataFormatException e) {
 			e.printStackTrace();
 		} 
-    }
-    
-    /**Stop the thread from receiving packets. */
-    public void stop(){
-    	running = false;
-    }
+	}
+
+	/**Stop the thread from receiving packets. */
+	public void stop(){
+		running = false;
+	}
 }

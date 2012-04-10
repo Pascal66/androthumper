@@ -59,4 +59,23 @@ public class Conts {
 		/**Code used to define a status packet. */
 		public static final int GPS_STATUS_CODE = 0;
 	}
+	
+	public static class Controller{
+		
+		public static class Buttons{
+			public static final int BUTTON_A = 0;
+			public static final int BUTTON_B = 1;
+			public static final int BUTTON_X = 2;
+			public static final int BUTTON_Y = 3;
+			public static final int BUTTON_START = 7;
+			public static final int BUTTON_SEL = 6;
+			public static final int BUTTON_RB = 5;
+			public static final int BUTTON_LB = 4;
+			public static final int BUTTON_LS = 8;
+			public static final int BUTTON_RS = 9;
+		}
+		public static class Axis{
+			
+		}
+	}
 }

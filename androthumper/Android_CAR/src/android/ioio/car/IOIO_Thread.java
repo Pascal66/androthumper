@@ -214,14 +214,14 @@ public class IOIO_Thread implements Runnable {
 
 			//Simply turn on the test LED. This is used to signify right/left controllers (it only lights
 			// on left) and that the ioio is still listening.
-			if(input[1] == 0){
+			if(input[Conts.Controller.Buttons.BUTTON_A] == 0){
 				testLED.write(true);
 			}else{
 				testLED.write(false);
 			}
 
 			//RESET
-			if(input[4] == 1){
+			if(input[Conts.Controller.Buttons.BUTTON_X] == 1){
 				reset.write(false);
 				setBaud = false;
 				resetted = true;
@@ -237,7 +237,7 @@ public class IOIO_Thread implements Runnable {
 				}
 			}
 
-			if(input[3] == 1){
+			if(input[Conts.Controller.Buttons.BUTTON_LS] == 1){
 				//read values back from my motor driver
 				try {
 					os.write(new byte[]{(byte) 0x83,2});
@@ -294,7 +294,7 @@ public class IOIO_Thread implements Runnable {
 				}
 			}
 			
-			if(input[7] == 1){
+			if(input[Conts.Controller.Buttons.BUTTON_RS] == 1){
 				try {
 					//Write parameters to my motor driver
 					os.write(new byte[]{(byte) 0x84, 4, 0, 0x55, 0x2A});
@@ -359,7 +359,7 @@ public class IOIO_Thread implements Runnable {
 			}
 
 			//Set the baud rate. Must be done before any motor commands.
-			if(input[0] == 1){
+			if(input[Conts.Controller.Buttons.BUTTON_B] == 1){
 				if(!setBaud){
 					try {
 						os.write(0xAA);
@@ -370,10 +370,10 @@ public class IOIO_Thread implements Runnable {
 				}
 			}
 			
-			if(input[2] == 1){
+			if(input[Conts.Controller.Buttons.BUTTON_LB] == 1){
 				m1HasMoved = false;
 			}
-			if(input[6] == 1){
+			if(input[Conts.Controller.Buttons.BUTTON_RB] == 1){
 				m0hasMoved = false;
 			}
 
@@ -390,7 +390,7 @@ public class IOIO_Thread implements Runnable {
 						if(m0speed > -input[11]){
 							m0speed = -input[11];
 						}
-						os.write(new byte[]{(byte) 0x8C,(byte) m0speed});
+						os.write(new byte[]{(byte) 0x8E,(byte) m0speed});
 						m0hasMoved = true;
 					}else if(input[11] > 1){
 						//backward
@@ -402,7 +402,7 @@ public class IOIO_Thread implements Runnable {
 						if(m0speed > input[11]){
 							m0speed = input[11];
 						}
-						os.write(new byte[]{(byte) 0x8E,(byte) m0speed});
+						os.write(new byte[]{(byte) 0x8C,(byte) m0speed});
 						m0hasMoved = true;
 					}else{
 						if(m0hasMoved){
@@ -423,7 +423,7 @@ public class IOIO_Thread implements Runnable {
 						if(m1speed > -input[10]){
 							m1speed = -input[10];
 						}
-						os.write(new byte[]{(byte) 0x8A,(byte) m1speed});
+						os.write(new byte[]{(byte) 0x88,(byte) m1speed});
 						m1HasMoved = true;
 					}else if(input[10] > 1){
 						//backward
@@ -435,7 +435,7 @@ public class IOIO_Thread implements Runnable {
 						if(m1speed > input[10]){
 							m1speed = input[10];
 						}
-						os.write(new byte[]{(byte) 0x88,(byte) m1speed});
+						os.write(new byte[]{(byte) 0x8A,(byte) m1speed});
 						m1HasMoved = true;
 					}else{
 						if(m1HasMoved){
