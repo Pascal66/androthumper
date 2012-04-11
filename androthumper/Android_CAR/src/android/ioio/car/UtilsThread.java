@@ -1,22 +1,19 @@
 package android.ioio.car;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutput;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.nio.channels.DatagramChannel;
-import java.util.Arrays;
-import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import android.util.Log;
+import org.apache.http.util.ByteArrayBuffer;
+
+import android.app.Activity;
+import android.widget.Toast;
 
 import constants.Conts;
 
@@ -29,6 +26,9 @@ import constants.Conts;
  */
 public class UtilsThread{
 
+	/**The host activity. */
+	private Activity host;
+	
 	/**A boolean flag to indicate if the threads are allowed to run. */
 	private boolean running = true;
 	/**A boolean flag to indicate whether the app should send the camera feed to the server. */
@@ -39,21 +39,24 @@ public class UtilsThread{
 	private boolean sensorsEnabled = false;
 	/**A boolean flag to indicate whether to listen to and send GPS status updates to the server. */
 	private boolean gpsStatusEnabled = false;
+	/**A boolean flag to indicate whether the socket is still connected to the server. */
+	private boolean stillConnected = false;
 
+	/**A socket to be connected to the server to. */
+	private Socket socket;
 	/**A Thread used to listen for incoming packets on the incoming socket. */
 	private Thread listeningThread;
 	/**A Thread used to send packets from the sending socket. */
 	private Thread sendingThread;
+	/**A Thread used to check if the connection to the server is still active. */
+	private Thread checkerThread;
+	/**The output stream to send data to the server. */
+	private OutputStream socketOutput;
+	/**The input stream to read data from the server. */
+	private InputStream socketInput;
+	private ByteArrayBuffer bab;
+	private int bytesReceived = 0;
 	
-	/**A socket used to listen for packets on. */
-	private DatagramSocket listeningSocket;
-	/**A socket used to send sockets from. */
-	private DatagramSocket sendingSocket;
-	/**A packet used to store information about received packets. */
-	private DatagramPacket listeningPacket;
-	/**A packet used to store information to send. */
-	private DatagramPacket sendingPacket;
-
 	/**A queue used to buffer output to send. */
 	private BlockingQueue<byte[]> sendingQueue;
 
@@ -62,28 +65,26 @@ public class UtilsThread{
 	/**A reference to the Sensors thread to enable/disable. */
 	private Sensors_thread sensors;
 
-	/**A logging tag. */
-	private final String TAG = "UtilsThread";
-
-	public UtilsThread(String ip){
+	public UtilsThread(Activity host, String ip){
+		this.host = host;
 		try {
 			sendingQueue = new ArrayBlockingQueue<byte[]>(20);
+			socket = new Socket(InetAddress.getByName(ip), Conts.Ports.UTILS_INCOMMING_PORT);
 
-			DatagramChannel channel = DatagramChannel.open();
-			listeningSocket = channel.socket();
-			listeningSocket.bind(null);
-			sendingSocket = new DatagramSocket();
-
-			listeningPacket = new DatagramPacket(new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE], Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE);
-			sendingPacket = new DatagramPacket(new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE], Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE, InetAddress.getByName(ip), Conts.Ports.UTILS_INCOMMING_PORT);
-
+			socketInput = socket.getInputStream();
+			socketOutput = socket.getOutputStream();
+			stillConnected = true;
+			
+			checkerThread = new Thread(checkerRunnable);
+//			checkerThread.start();
+			
 			listeningThread = new Thread(listenRunnable);
 			listeningThread.start();
 
 			sendingThread = new Thread(sendRunnable);
 			sendingThread.start();
 
-			ping();
+			//			ping();
 		}catch (SocketException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {
@@ -91,25 +92,6 @@ public class UtilsThread{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-
-	/**
-	 * Send a ping to the PC. This packet contains the port that the {@link #listeningSocket} is listening, so the PC knows
-	 * where to send packets to.
-	 */
-	private void ping(){
-		ByteArrayOutputStream baos = new ByteArrayOutputStream(Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE);
-		DataOutputStream dos = new DataOutputStream(baos);
-
-		try {
-			dos.writeInt(listeningSocket.getLocalPort());
-			dos.close();
-			sendData(baos.toByteArray());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		sendData(Arrays.copyOf(baos.toByteArray(), Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE));
 	}
 
 	/**
@@ -186,6 +168,11 @@ public class UtilsThread{
 	 */
 	public void stop(){
 		running = false;
+		try {
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**True if the server has requested the camera feed, false if otherwise. */
@@ -204,7 +191,7 @@ public class UtilsThread{
 	public boolean getUseGpsStatus(){
 		return gpsStatusEnabled;
 	}
-	
+
 	/**Register the {@link GPSThread} for control. */
 	public void registerForGPS(GPSThread gps){
 		this.gps = gps;
@@ -218,11 +205,25 @@ public class UtilsThread{
 	private Runnable listenRunnable = new Runnable() {
 		@Override
 		public void run() {
-			while(running){
-				try {
-					listeningSocket.receive(listeningPacket);
-					processData(listeningPacket.getData());
-				} catch (IOException e) {
+			while(running && stillConnected){
+				try{
+					if(bab == null){
+						bab = new ByteArrayBuffer(Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE);
+					}
+					
+					byte[] data = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
+					int result = socketInput.read(data);
+					if(result > 0){
+						bab.append(data, bytesReceived, result);
+						bytesReceived+=result;
+						if(bytesReceived == Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE){
+							processData(bab.toByteArray());
+							bab.clear();
+							bytesReceived = 0;
+						}
+					}
+				}catch(IOException e){
+					lostConnection();
 					e.printStackTrace();
 				}
 			}
@@ -232,11 +233,11 @@ public class UtilsThread{
 	private Runnable sendRunnable = new Runnable() {
 		@Override
 		public void run() {
-			while(running){
+			while(running && stillConnected){
 				try {
-					sendingPacket.setData(sendingQueue.take());
-					sendingSocket.send(sendingPacket);
+					socketOutput.write(sendingQueue.take());
 				} catch (IOException e) {
+					lostConnection();
 					e.printStackTrace();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
@@ -244,4 +245,38 @@ public class UtilsThread{
 			}
 		}
 	};
+	/**Runnable for {@link #checkerThread}. */
+	private Runnable checkerRunnable = new Runnable() {
+		@Override
+		public void run() {
+			while(stillConnected){
+				try{
+					socketOutput.write(-1);
+					Thread.sleep(1000);
+				}catch(IOException e){
+					lostConnection();
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	};
+	
+	private void lostConnection(){
+		stillConnected = false;
+		host.runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				Toast.makeText(host, "LOST CONNECTION", Toast.LENGTH_SHORT).show();
+			}
+		});
+		
+		/*
+		 * TODO
+		 * Write methods to stop IOIO, reset sockets, attempt re-connection every X seconds.
+		 * use broadcast receiver to listen for network changes:
+		 * http://stackoverflow.com/questions/3307237/how-can-i-monitor-the-network-connection-status-in-android
+		 */
+	}
 }

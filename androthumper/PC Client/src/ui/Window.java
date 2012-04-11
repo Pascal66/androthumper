@@ -62,7 +62,6 @@ public class Window extends javax.swing.JFrame {
         new ControllerThread(this);
         new GPSThread(this);
         utils = new Utils(this);
-        //new MovementThread(this);
         new SensorThread(this);
         moveThread = new MovementThread(this);
     }

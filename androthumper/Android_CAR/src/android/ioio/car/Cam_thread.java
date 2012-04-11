@@ -165,8 +165,8 @@ public class Cam_thread implements Runnable{
 			mCamera.setPreviewDisplay(app.getSurfaceHolder());
 			mCamera.setPreviewCallback(new cam_PreviewCallback());  
 			mCamera.startPreview();
-		}catch (Exception exception){
-			Log.e(TAG, "Error: ", exception);
+		}catch (Exception e){
+			e.printStackTrace();
 		}
 	}
 
@@ -217,10 +217,6 @@ public class Cam_thread implements Runnable{
 					//Set the size of this packet to be whatever we have not used up in the previous packets
 					size = compressedData.length - packetCount * DATAGRAM_MAX_SIZE;
 				}
-				
-				if(size > DATAGRAM_MAX_SIZE){
-					Log.e("errpr","error");
-				}
 
 				/* Set additional header */
 				data = new byte[HEADER_SIZE + size];
@@ -238,7 +234,9 @@ public class Cam_thread implements Runnable{
 				try {			
 					packet.setData(data);
 					socket.send(packet);
-				}catch (Exception e) {	Log.e(TAG, "Error: ", e);}	
+				}catch (Exception e){
+					e.printStackTrace();
+				}	
 			}	
 			frame_nb++;
 

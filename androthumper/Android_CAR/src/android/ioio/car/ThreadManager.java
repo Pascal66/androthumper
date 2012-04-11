@@ -70,7 +70,7 @@ public class ThreadManager{
 	 * @param ip - The ip of the server to connect to
 	 */
 	public ThreadManager(MainActivity app, String ip_address){		
-		utilsThread = new UtilsThread(ip_address);
+		utilsThread = new UtilsThread(app, ip_address);
 		the_cam = new Cam_thread(app,ip_address,utilsThread);
 		the_sensors = new Sensors_thread(app,ip_address,utilsThread);
 		ioio_thread_ = new IOIO_Thread(app, ip_address, utilsThread);

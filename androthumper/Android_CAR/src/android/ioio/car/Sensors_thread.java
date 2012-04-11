@@ -92,8 +92,8 @@ public class Sensors_thread implements SensorEventListener {
     	try{
     		socket = new DatagramSocket();
     		packet = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(ip), Conts.Ports.SENSOR_INCOMING_PORT);
-    	}catch (Exception exception){
-    		Log.e(tag, "Error: ", exception);
+    	}catch (Exception e){
+    		e.printStackTrace();
     	}
 	}
     
@@ -131,12 +131,11 @@ public class Sensors_thread implements SensorEventListener {
 			try {			
 				packet.setData(data);
 				socket.send(packet);
-				Log.e("Sensor thread","sent packet");
 			} catch (Exception e) {	
-				Log.e(tag, "Error: ", e);
+				e.printStackTrace();
 			}	
-		}catch (Exception exception) {
-			Log.e(tag, "Error: ", exception);
+		}catch (Exception e) {
+			e.printStackTrace();
 			disableSensors();
 		}
 	}

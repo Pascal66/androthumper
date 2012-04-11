@@ -110,11 +110,11 @@ public class CamThread implements Runnable{
 		ByteArrayOutputStream bos = null;
 
 		try {		         	
-			URL whatismyip = new URL("http://automation.whatismyip.com/n09230945.asp");
-			BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));
-
-			String ip = in.readLine(); //you get the IP as a String
-			Window.PrintToLog("ip1 = "+ip);
+//			URL whatismyip = new URL("http://automation.whatismyip.com/n09230945.asp");
+//			BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));
+//
+//			String ip = in.readLine(); //you get the IP as a String
+//			Window.PrintToLog("ip1 = "+ip);
 
 			InetAddress serverAddr = InetAddress.getLocalHost();
 			Window.PrintToLog("ip2 = " + serverAddr.getHostAddress());
@@ -165,7 +165,7 @@ public class CamThread implements Runnable{
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-			socket.close();
+			//socket.close();
 		} catch (DataFormatException e) {
 			e.printStackTrace();
 		} 
