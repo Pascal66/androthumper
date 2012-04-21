@@ -84,6 +84,8 @@ import com.zeemote.zc.ui.State;
 import com.zeemote.zc.ui.StateManager;
 import com.zeemote.zc.ui.UserChoiceState;
 
+import constants.Conts;
+
 /**
  * This is the main entry point of the program. It handles the connection to the Zeemotes,
  * as well as starting all the other threads.
@@ -193,31 +195,31 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 		if(cont ==0){
 			switch(event.getButtonGameAction()){
 			case 5:
-				input[0] = 1;
+				input[Conts.Controller.Buttons.BUTTON_X] = 1;
 				break;
 			case 6:
-				input[1] = 1;
+				input[Conts.Controller.Buttons.BUTTON_A] = 1;
 				break;
 			case 7:
-				input[2] = 1;
+				input[Conts.Controller.Buttons.BUTTON_LS] = 1;
 				break;
 			case 8:
-				input[3] = 1;
+				input[Conts.Controller.Buttons.BUTTON_LB] = 1;
 				break;
 			}
 		}else{
 			switch(event.getButtonGameAction()){
 			case 5:
-				input[4] = 1;
+				input[Conts.Controller.Buttons.BUTTON_B] = 1;
 				break;
 			case 6:
-				input[5] = 1;
+				//input[5] = 1;
 				break;
 			case 7:
-				input[6] = 1;
+				input[Conts.Controller.Buttons.BUTTON_RS] = 1;
 				break;
 			case 8:
-				input[7] = 1;
+				input[Conts.Controller.Buttons.BUTTON_RB] = 1;
 				break;
 			}
 		}
@@ -236,31 +238,31 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 		if(cont == 0){
 			switch(event.getButtonGameAction()){
 			case 5:
-				input[0] = 0;
+				input[Conts.Controller.Buttons.BUTTON_X] = 0;
 				break;
 			case 6:
-				input[1] = 0;
+				input[Conts.Controller.Buttons.BUTTON_A] = 0;
 				break;
 			case 7:
-				input[2] = 0;
+				input[Conts.Controller.Buttons.BUTTON_LS] = 0;
 				break;
 			case 8:
-				input[3] = 0;
+				input[Conts.Controller.Buttons.BUTTON_LB] = 0;
 				break;
 			}
 		}else{
 			switch(event.getButtonGameAction()){
 			case 5:
-				input[4] = 0;
+				input[Conts.Controller.Buttons.BUTTON_B] = 0;
 				break;
 			case 6:
-				input[5] = 0;
+				//input[5] = 0;
 				break;
 			case 7:
-				input[6] = 0;
+				input[Conts.Controller.Buttons.BUTTON_RS] = 0;
 				break;
 			case 8:
-				input[7] = 0;
+				input[Conts.Controller.Buttons.BUTTON_RB] = 0;
 				break;
 			}
 		}
@@ -276,7 +278,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 	 */
 	public void leftJoystick(int val){
 		Log.e("LEFT STICK: ",""+val);
-		input[10] = (byte)val;
+		input[10] = (byte)-val;
 		if(override){
 			manager.overrideMovement(input);
 		}
@@ -288,7 +290,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 	 */
 	public void rightJoystick(int val){
 		Log.e("RIGHT STICK: ",""+val);
-		input[11] = (byte)val;
+		input[11] = (byte)-val;
 		if(override){
 			manager.overrideMovement(input);
 		}

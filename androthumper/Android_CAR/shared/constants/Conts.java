@@ -58,6 +58,8 @@ public class Conts {
 		public static final int GPS_POSITION_CODE = 1;
 		/**Code used to define a status packet. */
 		public static final int GPS_STATUS_CODE = 0;
+		
+		public static final byte UTILS_CONNECTION_TEST = -1;
 	}
 	
 	public static class Controller{

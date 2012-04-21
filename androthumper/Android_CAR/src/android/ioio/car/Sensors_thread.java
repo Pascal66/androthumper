@@ -82,11 +82,13 @@ public class Sensors_thread implements SensorEventListener {
 	private float x_O, y_O, z_O, x_A, y_A, z_A;
 	private short ix_O, iy_O, iz_O, ix_A, iy_A, iz_A;
 	private boolean changed = false;
+	private UtilsThread utils;
 	
 	private SensorManager mSensorManager = null;	
 
     public Sensors_thread(MainActivity app, String ip, UtilsThread utils){
     	utils.registerForSensor(this);
+    	this.utils = utils;
     	mSensorManager = (SensorManager)app.getSystemService(Context.SENSOR_SERVICE);   
     	
     	try{
@@ -178,8 +180,12 @@ public class Sensors_thread implements SensorEventListener {
 		}
 		
 		if(changed){
-			send_data_UDP();
-			changed = false;
+			if(utils.isConnected()){
+				send_data_UDP();
+				changed = false;
+			}else{
+				disableSensors();
+			}
 		}
 	}
 	

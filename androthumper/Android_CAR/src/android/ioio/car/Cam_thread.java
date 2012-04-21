@@ -268,7 +268,7 @@ public class Cam_thread implements Runnable{
 				dest = new Mat();
 			}
 
-			if(utils.getUseCamera()){
+			if(utils.isConnected() && utils.getUseCamera()){
 //				m.put(0, 0, data);
 //				if(features == null){
 //					features = new LinkedList<Point>();

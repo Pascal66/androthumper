@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -13,6 +15,7 @@ import java.util.concurrent.BlockingQueue;
 import org.apache.http.util.ByteArrayBuffer;
 
 import android.app.Activity;
+import android.util.Log;
 import android.widget.Toast;
 
 import constants.Conts;
@@ -69,8 +72,10 @@ public class UtilsThread{
 		this.host = host;
 		try {
 			sendingQueue = new ArrayBlockingQueue<byte[]>(20);
-			socket = new Socket(InetAddress.getByName(ip), Conts.Ports.UTILS_INCOMMING_PORT);
-
+			socket = new Socket();
+			SocketAddress address = new InetSocketAddress(InetAddress.getByName(ip), Conts.Ports.UTILS_INCOMMING_PORT);
+			socket.connect(address, 3000);
+			
 			socketInput = socket.getInputStream();
 			socketOutput = socket.getOutputStream();
 			stillConnected = true;
@@ -84,13 +89,19 @@ public class UtilsThread{
 			sendingThread = new Thread(sendRunnable);
 			sendingThread.start();
 
-			//			ping();
+			Log.e("utils","end of create");
 		}catch (SocketException e) {
 			e.printStackTrace();
+			stillConnected = false;
+			Log.e("utils","error");
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
+			stillConnected = false;
+			Log.e("utils","error");
 		} catch (IOException e) {
 			e.printStackTrace();
+			stillConnected = false;
+			Log.e("utils","error");
 		}
 	}
 
@@ -114,6 +125,8 @@ public class UtilsThread{
 	 */
 	private void processData(byte[] data){
 		switch(data[0]){
+		case Conts.UtilsCodes.UTILS_CONNECTION_TEST:
+			break;
 		case Conts.UtilsCodes.ENABLE_CAM:
 			if(!camEnabled){
 				camEnabled = true;
@@ -262,6 +275,10 @@ public class UtilsThread{
 			}
 		}
 	};
+	
+	public boolean isConnected(){
+		return stillConnected;
+	}
 	
 	private void lostConnection(){
 		stillConnected = false;
