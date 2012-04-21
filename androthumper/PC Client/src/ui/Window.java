@@ -64,6 +64,17 @@ public class Window extends javax.swing.JFrame {
         utils = new Utils(this);
         new SensorThread(this);
         moveThread = new MovementThread(this);
+        
+        int[] err = utils.getErrorBits(-121);
+        StringBuilder sb = new StringBuilder();
+        for(int i = 7; i > -1; i--){
+        	if(err[i] == 1){
+        		sb.append("1,");
+        	}else{
+        		sb.append("0,");
+        	}
+        }
+        System.out.println(sb+": "+err[8]);
     }
 
     /**

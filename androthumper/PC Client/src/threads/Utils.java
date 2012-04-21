@@ -42,7 +42,7 @@ public class Utils{
 	private OutputStream socketOutput;
 	
 	private ServerSocket serverSocket;
-
+	
 	public Utils(Window window2){
 		try {
 			sendingQueue = new ArrayBlockingQueue<byte[]>(20);
@@ -100,6 +100,8 @@ public class Utils{
 	private void processData(byte[] data){
 		switch(data[0]){
 		case Conts.UTILS_MESSAGE_TYPE_DRIVER_ERROR:
+			int[] bits = new int[8];
+			
 			System.out.println("Recieved IOIO error:"+data[1]);
 			break;
 		}
@@ -174,6 +176,50 @@ public class Utils{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public static int[] getErrorBits(int error){
+		int num;
+		int[] bits = new int[9];
+		
+		if(error<0){
+			bits[7] = 1;
+			error = -error;
+			error=128-error;
+			bits[8]=128+error;
+		}else{
+			bits[8]=error;
+		}
+		
+		while(error != 0){
+			if(error >= 128){
+				error-=128;
+				bits[7] = 1;
+			}else if(error >= 64){
+				error-=64;
+				bits[6] = 1;
+			}else if(error >= 32){
+				error-=32;
+				bits[5] = 1;
+			}else if(error >= 16){
+				error-=16;
+				bits[4] = 1;
+			}else if(error >= 8){
+				error-=8;
+				bits[3] = 1;
+			}else if(error >= 4){
+				error-=4;
+				bits[2] = 1;
+			}else if(error >= 2){
+				error-=2;
+				bits[1] = 1;
+			}else if(error == 1){
+				error-=1;
+				bits[0] = 1;
+			}
+		}
+		
+		return bits;
 	}
 
 }
