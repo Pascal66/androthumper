@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/main_menu_cam" android:title="Enable Cam" android:titleCondensed="Cam"></item>
+    <item android:id="@+id/main_menu_zeemotes" android:title="Zeemotes" android:titleCondensed="Zee"></item>
+</menu>
