@@ -104,6 +104,12 @@ public class Utils{
 			
 			System.out.println("Recieved IOIO error:"+data[1]);
 			break;
+		case Conts.UtilsCodes.LOST_IOIO_CONNECTION:
+			Window.PrintToLog("lost ioio.");
+			break;
+		case Conts.UtilsCodes.GOT_IOIO_CONNECTION:
+			Window.PrintToLog("got ioio.");
+			break;
 		}
 	}
 	
@@ -140,7 +146,7 @@ public class Utils{
 					e.printStackTrace();
 				}catch (IOException e) {
 					stillConnected = false;
-					e.printStackTrace();
+					Window.PrintToLog("LOST CONNECTION");
 				}
 			}
 		}
@@ -173,7 +179,14 @@ public class Utils{
 			
 			listeningThread.start();
 			sendingThread.start();
+			
+			while(stillConnected){
+				Thread.sleep(2000);
+				sendCommand(Conts.UtilsCodes.UTILS_CONNECTION_TEST);
+			}
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 	}

@@ -168,6 +168,8 @@ public class IOIO_Thread implements Runnable {
 		private DigitalInput errorInput;
 		private DigitalOutput reset;
 		private int ACCEL_VAL = 35;
+		
+		private boolean connected = false;
 
 		@Override
 		public void run() {
@@ -182,10 +184,22 @@ public class IOIO_Thread implements Runnable {
 					}
 				} catch (ConnectionLostException e) {
 					//e.printStackTrace();
+					if(connected){
+						utils.sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
+						connected = false;
+					}
 				} catch (IncompatibilityException e) {
 					//e.printStackTrace();
+					if(connected){
+						connected = false;
+						utils.sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
+					}
 				} catch (InterruptedException e) {
 					//e.printStackTrace();
+					if(connected){
+						connected = false;
+						utils.sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
+					}
 				}
 			}
 		}
@@ -211,7 +225,10 @@ public class IOIO_Thread implements Runnable {
 		 * This is the main ioio loop, which is ran every tick.
 		 */
 		private void loop() throws ConnectionLostException{
-
+			if(!connected){
+				utils.sendCommand(Conts.UtilsCodes.GOT_IOIO_CONNECTION);
+			}
+			connected = true;
 			//Simply turn on the test LED. This is used to signify right/left controllers (it only lights
 			// on left) and that the ioio is still listening.
 			if(input[Conts.Controller.Buttons.BUTTON_A] == 0){

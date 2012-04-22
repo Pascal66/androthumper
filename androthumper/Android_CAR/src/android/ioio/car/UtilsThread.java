@@ -104,6 +104,18 @@ public class UtilsThread{
 			Log.e("utils","error");
 		}
 	}
+	
+	/**
+	 * Send a single command to the client.
+	 * @param command - the command to send. See {@link Conts} //TODO break into inner classes for types
+	 */
+	public void sendCommand(byte command){
+		if(isConnected()){
+			byte[] data = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
+			data[0] = command;
+			sendData(data);
+		}
+	}
 
 	/**
 	 * Send a byte[] to the server. The length of the byte[] MUST match that which is expected by the server 
