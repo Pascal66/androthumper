@@ -756,14 +756,14 @@ public class Window extends javax.swing.JFrame {
     }                                             
 
     private void showLocationButtonActionPerformed(java.awt.event.ActionEvent evt) {                                         
-    	//if(mapWindow == null){
+    	if(mapWindow == null){
     		mapWindow = new MapWindow(this, lat, lng, points);
-//    	}else{
+    	}else{
 //    		if(!mapWindow.isVisible()){
 //    			mapWindow.setVisible(true);
 //    		}
-//    		mapWindow.jumpToLocation(lat, lng);
-//    	}
+    		mapWindow.jumpToLocation(lat, lng);
+    	}
     }     
     public void setPoints(Vector<float[]> points){
     	this.points = points;

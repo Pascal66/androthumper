@@ -113,8 +113,8 @@ public class MapApplet extends PApplet{
 	public void jumpToLocation(float lat, float lng){
 		currentLocation = new Location(lat,lng);
 
-		map1.zoomAndPanTo(currentLocation, 10);
-		map2.zoomAndPanTo(currentLocation, 10);
+		map1.zoomAndPanTo(currentLocation, 15);
+		map2.zoomAndPanTo(currentLocation, 15);
 	}
 
 	public static void main(String[] args) {
