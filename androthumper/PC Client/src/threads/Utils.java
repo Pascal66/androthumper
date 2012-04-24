@@ -126,7 +126,7 @@ public class Utils{
 					processData(data);
 				} catch (IOException e) {
 					stillConnected = false;
-					System.out.println("Lost connection.");
+					Window.PrintToLog("LOST CONNECTION");
 					e.printStackTrace();
 				}
 			}

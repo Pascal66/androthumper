@@ -66,13 +66,14 @@ public class GPSThread implements Runnable{
 				dataInput = new DataInputStream(bytein);
 				switch(dataInput.readByte()){
 				case Conts.UtilsCodes.GPS_POSITION_CODE:
-					longitude = dataInput.readDouble();
 					latitude = dataInput.readDouble();
+					longitude = dataInput.readDouble();
 					altitude = dataInput.readDouble();
 					speed = dataInput.readFloat();
 					accuracy = dataInput.readFloat();
 					
 					window.postToGPSLog("GPS Update: Lat: "+latitude+" Long: "+longitude+" speed: "+speed+" accuracy: "+accuracy);
+					window.setLocation(latitude, longitude);
 					break;
 				case Conts.UtilsCodes.GPS_STATUS_CODE:
 					int[] prns = new int[6];

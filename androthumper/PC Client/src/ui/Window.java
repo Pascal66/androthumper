@@ -3,6 +3,8 @@ package ui;
 import javax.swing.ImageIcon;
 
 import java.awt.Color;
+import java.util.Vector;
+
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
@@ -38,11 +40,16 @@ public class Window extends javax.swing.JFrame {
     /**Holds the labels for the PNR number from the GPS satellites. */
     private JLabel[] satsPrn = new JLabel[6];
     
+    private float lat = 52.41892f,lng = -4.081652f;
+    private MapWindow mapWindow;
+    private Vector<float[]> points;
+    
     /**
      * Creates new form Window
      */
     public Window() {
         initComponents();
+        points = new Vector<float[]>();
 
         satsSnr[0] = satProgress1;
         satsSnr[1] = satProgress2;
@@ -102,11 +109,11 @@ public class Window extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
         jLabel18 = new javax.swing.JLabel();
-        jButton1 = new javax.swing.JButton();
+        showLocationButton = new javax.swing.JButton();
         jScrollPane3 = new javax.swing.JScrollPane();
         gpsLog = new javax.swing.JTextArea();
-        jLabel7 = new javax.swing.JLabel();
-        jLabel8 = new javax.swing.JLabel();
+        latLabel = new javax.swing.JLabel();
+        lngLabel = new javax.swing.JLabel();
         jPanel9 = new javax.swing.JPanel();
         jPanel21 = new javax.swing.JPanel();
         satProgress1 = new javax.swing.JProgressBar();
@@ -273,10 +280,10 @@ public class Window extends javax.swing.JFrame {
 
         jLabel18.setText("Current Location:");
 
-        jButton1.setText("Show");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
+        showLocationButton.setText("Show");
+        showLocationButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
+                showLocationButtonActionPerformed(evt);
             }
         });
 
@@ -286,9 +293,9 @@ public class Window extends javax.swing.JFrame {
         gpsLog.setWrapStyleWord(true);
         jScrollPane3.setViewportView(gpsLog);
 
-        jLabel7.setText("LAT: ");
+        latLabel.setText("LAT: ");
 
-        jLabel8.setText("LNG: ");
+        lngLabel.setText("LNG: ");
 
         jPanel9.setLayout(new java.awt.GridBagLayout());
 
@@ -398,12 +405,12 @@ public class Window extends javax.swing.JFrame {
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(showLocationButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel7)
-                            .addComponent(jLabel8)
+                            .addComponent(latLabel)
+                            .addComponent(lngLabel)
                             .addComponent(jLabel18, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, 244, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGap(0, 0, Short.MAX_VALUE)))
@@ -417,11 +424,11 @@ public class Window extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jLabel18, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel7)
+                .addComponent(latLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel8)
+                .addComponent(lngLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton1)
+                .addComponent(showLocationButton)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(76, Short.MAX_VALUE))
@@ -748,9 +755,19 @@ public class Window extends javax.swing.JFrame {
         // TODO add your handling code here:
     }                                             
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {                                         
-        // TODO add your handling code here:
-    }                                        
+    private void showLocationButtonActionPerformed(java.awt.event.ActionEvent evt) {                                         
+    	//if(mapWindow == null){
+    		mapWindow = new MapWindow(this, lat, lng, points);
+//    	}else{
+//    		if(!mapWindow.isVisible()){
+//    			mapWindow.setVisible(true);
+//    		}
+//    		mapWindow.jumpToLocation(lat, lng);
+//    	}
+    }     
+    public void setPoints(Vector<float[]> points){
+    	this.points = points;
+    }
     
     	/**
 	 * Displays the controller information, and sends the data to the client.
@@ -783,6 +800,19 @@ public class Window extends javax.swing.JFrame {
 	public void postToGPSLog(String line){
 		gpsLog.append(line +"\n");
 		gpsLog.setCaretPosition(gpsLog.getText().length());
+	}
+	
+	/**
+	 * Change the current location position
+	 * @param lat - The latitude
+	 * @param lng - The longitude
+	 */
+	public void setLocation(double lat, double lng){
+		this.lat = (float) lat;
+		this.lng = (float) lng;
+
+		latLabel.setText("LAT: "+lat);
+		lngLabel.setText("LNG: "+lng);
 	}
 
 	/**
@@ -889,7 +919,7 @@ public class Window extends javax.swing.JFrame {
     private javax.swing.JCheckBox enableSensorsCheck;
     private javax.swing.JTextArea gpsLog;
     private javax.swing.JLabel image;
-    private javax.swing.JButton jButton1;
+    private javax.swing.JButton showLocationButton;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel17;
@@ -900,8 +930,8 @@ public class Window extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
-    private javax.swing.JLabel jLabel7;
-    private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel latLabel;
+    private javax.swing.JLabel lngLabel;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenu jMenu3;

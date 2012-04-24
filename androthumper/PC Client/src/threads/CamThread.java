@@ -57,6 +57,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
@@ -110,11 +111,11 @@ public class CamThread implements Runnable{
 		ByteArrayOutputStream bos = null;
 
 		try {		         	
-//			URL whatismyip = new URL("http://automation.whatismyip.com/n09230945.asp");
-//			BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));
-//
-//			String ip = in.readLine(); //you get the IP as a String
-//			Window.PrintToLog("ip1 = "+ip);
+			URL whatismyip = new URL("http://api.externalip.net/ip/");
+			BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));
+
+			String ip = in.readLine(); //you get the IP as a String
+			Window.PrintToLog("ip1 = "+ip);
 
 			InetAddress serverAddr = InetAddress.getLocalHost();
 			Window.PrintToLog("ip2 = " + serverAddr.getHostAddress());
@@ -154,13 +155,18 @@ public class CamThread implements Runnable{
 					uncompressor.reset();
 					uncompressor.setInput(imageData);
 					int totalRead = 0;
-					while(!uncompressor.finished()){
-						uncompressor.inflate(buff, 0, 1024);
-						bos.write(buff);
+					try{
+						while(!uncompressor.finished()){
+							uncompressor.inflate(buff, 0, 1024);
+							bos.write(buff);
 
+						}
+						//ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+						window.setImage(bos.toByteArray());
+					}catch(OutOfMemoryError e){
+						uncompressor.reset();
+						bos.reset();
 					}
-					//ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
-					window.setImage(bos.toByteArray());
 				}
 			}
 		} catch (IOException e) {
