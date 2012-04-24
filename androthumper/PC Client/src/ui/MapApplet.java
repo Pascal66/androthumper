@@ -194,7 +194,13 @@ public class MapApplet extends PApplet{
 			}
 
 			if(highlightedLocation1 != null && highlightedLocation2 != null){
-				points.insertElementAt(map.getLocationFromScreenPosition(x, y), points.indexOf(highlightedLocation1));
+				
+				int index = points.indexOf(highlightedLocation1);
+				if(index > points.indexOf(highlightedLocation2)){
+					points.insertElementAt(map.getLocationFromScreenPosition(x, y), index);
+				}else{
+					points.insertElementAt(map.getLocationFromScreenPosition(x, y), points.indexOf(highlightedLocation2));
+				}
 				highlightedLocation1 = null;
 				highlightedLocation2 = null;
 			}else{
