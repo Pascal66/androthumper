@@ -45,22 +45,23 @@ public class MapApplet extends PApplet{
 	private Window window;
 	private Location highlightedLocation1, highlightedLocation2;
 
-		public MapApplet(Window window, float lat, float lng, Vector<float[]> points){
-			currentLocation = new Location(lat,lng);
-			this.window = window;
-			
-			for(int i = 0; i < points.size(); i++){
-				float[] pair = points.get(i);
-				this.points.add(new Location(pair[0],pair[1]));
-			}
+	public MapApplet(Window window, float lat, float lng, Vector<float[]> points){
+		currentLocation = new Location(lat,lng);
+		this.window = window;
+
+		for(int i = 0; i < points.size(); i++){
+			float[] pair = points.get(i);
+			this.points.add(new Location(pair[0],pair[1]));
 		}
+	}
 
 	public void setup() {
 		size(800, 600, GLConstants.GLGRAPHICS);
 		currentLocation = new Location(lat,lng);
 		map1 = new Map(this, new Google.GoogleMapProvider());
 		map2 = new Map(this, new Microsoft.AerialProvider());
-
+		map1.setZoomRange(0, 50);
+		map2.setZoomRange(0, 50);
 		map1.zoomAndPanTo(currentLocation, 15);
 		map2.zoomAndPanTo(currentLocation, 15);
 
@@ -107,6 +108,7 @@ public class MapApplet extends PApplet{
 			float[] screenPos = map.getScreenPositionFromLocation(highlightedLocation2);
 			ellipse(screenPos[0], screenPos[1], 10, 10);
 		}
+		fill(0,0,0,255);
 		drawBarScale(20, map.mapDisplay.getHeight() - 20);
 	}
 
@@ -177,40 +179,40 @@ public class MapApplet extends PApplet{
 			}
 		}
 
-			for(int i = 0; i <points.size(); i++){
-				Location l = points.get(i);
-				float[] screenPos = map.getScreenPositionFromLocation(l);
-				if(dist(screenPos[0],screenPos[1],x,y) < 10){
-					if(highlightedLocation1 == null){
-						highlightedLocation1 = l;
-					}else if(highlightedLocation2 == null){
-						highlightedLocation2 = l;
-					}else{
-						highlightedLocation1 = null;
-						highlightedLocation2 = null;
-					}
-					return;
-				}
-			}
-
-			if(highlightedLocation1 != null && highlightedLocation2 != null){
-				
-				int index = points.indexOf(highlightedLocation1);
-				if(index > points.indexOf(highlightedLocation2)){
-					points.insertElementAt(map.getLocationFromScreenPosition(x, y), index);
+		for(int i = 0; i <points.size(); i++){
+			Location l = points.get(i);
+			float[] screenPos = map.getScreenPositionFromLocation(l);
+			if(dist(screenPos[0],screenPos[1],x,y) < 10){
+				if(highlightedLocation1 == null){
+					highlightedLocation1 = l;
+				}else if(highlightedLocation2 == null){
+					highlightedLocation2 = l;
 				}else{
-					points.insertElementAt(map.getLocationFromScreenPosition(x, y), points.indexOf(highlightedLocation2));
+					highlightedLocation1 = null;
+					highlightedLocation2 = null;
 				}
-				highlightedLocation1 = null;
-				highlightedLocation2 = null;
+				return;
+			}
+		}
+
+		if(highlightedLocation1 != null && highlightedLocation2 != null){
+
+			int index = points.indexOf(highlightedLocation1);
+			if(index > points.indexOf(highlightedLocation2)){
+				points.insertElementAt(map.getLocationFromScreenPosition(x, y), index);
 			}else{
-				points.add(map.getLocationFromScreenPosition(x, y));
+				points.insertElementAt(map.getLocationFromScreenPosition(x, y), points.indexOf(highlightedLocation2));
 			}
-			
-			if(window != null){
-				window.setPoints(floatsFromLocations());
-			}
-		
+			highlightedLocation1 = null;
+			highlightedLocation2 = null;
+		}else{
+			points.add(map.getLocationFromScreenPosition(x, y));
+		}
+
+		if(window != null){
+			window.setPoints(floatsFromLocations());
+		}
+
 
 	}
 	private void handleRightClick(int x, int y){

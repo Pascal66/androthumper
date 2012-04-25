@@ -9,12 +9,10 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/jutils.jar"/>
-	<classpathentry kind="lib" path="/unfolding/lib/core.jar" sourcepath="/processing-1.0.9/core"/>
 	<classpathentry kind="lib" path="lib/unfolding_fat.jar">
 		<attributes>
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="PC Client/lib"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/unfolding/lib/glgraphics.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
