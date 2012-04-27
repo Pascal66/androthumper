@@ -44,6 +44,8 @@ public class Conts {
 		/**Code to disable GPS status updates. */
 		public static final byte DISABLE_GPS_STATUS = 7;
 		
+		public static final byte SEND_GPS_WAYPOINTS = 8;
+		
 		/**Code to enable camera feed. */
 		public static final byte ENABLE_CAM = 2;
 		/**Code to disable camera feed. */

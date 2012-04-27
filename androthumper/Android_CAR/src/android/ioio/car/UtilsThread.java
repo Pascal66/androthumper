@@ -1,5 +1,7 @@
 package android.ioio.car;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -9,6 +11,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -31,7 +34,7 @@ public class UtilsThread{
 
 	/**The host activity. */
 	private Activity host;
-	
+
 	/**A boolean flag to indicate if the threads are allowed to run. */
 	private boolean running = true;
 	/**A boolean flag to indicate whether the app should send the camera feed to the server. */
@@ -59,7 +62,7 @@ public class UtilsThread{
 	private InputStream socketInput;
 	private ByteArrayBuffer bab;
 	private int bytesReceived = 0;
-	
+
 	/**A queue used to buffer output to send. */
 	private BlockingQueue<byte[]> sendingQueue;
 
@@ -75,14 +78,14 @@ public class UtilsThread{
 			socket = new Socket();
 			SocketAddress address = new InetSocketAddress(InetAddress.getByName(ip), Conts.Ports.UTILS_INCOMMING_PORT);
 			socket.connect(address, 3000);
-			
+
 			socketInput = socket.getInputStream();
 			socketOutput = socket.getOutputStream();
 			stillConnected = true;
-			
+
 			checkerThread = new Thread(checkerRunnable);
-//			checkerThread.start();
-			
+			//			checkerThread.start();
+
 			listeningThread = new Thread(listenRunnable);
 			listeningThread.start();
 
@@ -104,7 +107,7 @@ public class UtilsThread{
 			Log.e("utils","error");
 		}
 	}
-	
+
 	/**
 	 * Send a single command to the client.
 	 * @param command - the command to send. See {@link Conts} //TODO break into inner classes for types
@@ -185,6 +188,24 @@ public class UtilsThread{
 				sensors.disableSensors();
 			}
 			break;
+		case Conts.UtilsCodes.SEND_GPS_WAYPOINTS:
+			DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data, 1, data.length-1));
+
+			Vector<float[]> points = new Vector<float[]>();
+			while(true){
+				try {
+					float[] data1 = new float[2];
+					data1[0] = dis.readFloat();
+					data1[1] = dis.readFloat();
+
+				} catch (IOException e) {
+					break;
+				}
+				break;
+			}
+			/*
+			 * Send info to GPS waypoint driver
+			 */
 		}
 	}
 
@@ -235,7 +256,7 @@ public class UtilsThread{
 					if(bab == null){
 						bab = new ByteArrayBuffer(Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE);
 					}
-					
+
 					byte[] data = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
 					int result = socketInput.read(data);
 					if(result > 0){
@@ -287,11 +308,11 @@ public class UtilsThread{
 			}
 		}
 	};
-	
+
 	public boolean isConnected(){
 		return stillConnected;
 	}
-	
+
 	private void lostConnection(){
 		stillConnected = false;
 		host.runOnUiThread(new Runnable() {
@@ -300,7 +321,7 @@ public class UtilsThread{
 				Toast.makeText(host, "LOST CONNECTION", Toast.LENGTH_SHORT).show();
 			}
 		});
-		
+
 		/*
 		 * TODO
 		 * Write methods to stop IOIO, reset sockets, attempt re-connection every X seconds.
