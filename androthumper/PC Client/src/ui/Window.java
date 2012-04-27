@@ -862,6 +862,10 @@ public class Window extends javax.swing.JFrame {
 			}
 		}
 	}
+	
+	public void sendGPSWaypointData(byte[] data){
+		utils.sendData(data);
+	}
 
     /**
      * @param args the command line arguments

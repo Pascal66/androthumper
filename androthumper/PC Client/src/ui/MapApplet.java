@@ -5,6 +5,8 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -16,6 +18,8 @@ import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
+
+import constants.Conts;
 
 import codeanticode.glgraphics.GLConstants;
 import de.fhpotsdam.unfolding.Map;
@@ -316,6 +320,31 @@ public class MapApplet extends PApplet{
 
 	public void printt(String print){
 		System.out.println(print);
+	}
+	
+	public void clearPoints(){
+		points.clear();
+	}
+	public byte[] getPointsAsByteArray(){
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		DataOutputStream dos = new DataOutputStream(baos);
+		
+		try {
+			dos.write(Conts.UtilsCodes.SEND_GPS_WAYPOINTS);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		for(Location l:points){
+			try {
+				dos.writeFloat(l.getLat());
+				dos.writeFloat(l.getLon());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return baos.toByteArray();
 	}
 
 	@Override
