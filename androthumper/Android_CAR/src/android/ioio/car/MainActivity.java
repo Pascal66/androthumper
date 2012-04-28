@@ -56,6 +56,9 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.ioio.car.drivers.DriverManager;
+import android.ioio.car.threads.ThreadManager;
+import android.ioio.car.threads.UtilsThread;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Looper;
@@ -93,7 +96,9 @@ import constants.Conts;
  *
  */
 public class MainActivity extends Activity implements SurfaceHolder.Callback {   	
-	private ThreadManager manager;
+	private ThreadManager threadManager;
+	private DriverManager driverManager;
+	private UtilsThread utilsThread;
 	private ToggleButton togglebutton,controlToggle;
 	private EditText ip_text;
     private SurfaceView view;
@@ -101,8 +106,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 	private AlertDialog dialog;
 	private Button connectZeemotes;
 	private boolean override = false;
-	
-	byte[] input = new byte[12];
+	private boolean gotControllers = false;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {		
@@ -128,12 +132,18 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 		controlToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 			@Override
 			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-					override = isChecked;
+				override = isChecked;
+				if(isChecked){
+					if(gotControllers){
+						final MyZSpyApplication app = (MyZSpyApplication)getApplicationContext();
+						app.addMyListener(driverManager.getZeemoteDriver());
+						Toast.makeText(MainActivity.this, "Started Zeemote driver.", Toast.LENGTH_SHORT).show();
+					}else{
+						Toast.makeText(MainActivity.this, "Connect controllers first.", Toast.LENGTH_SHORT).show();
+					}
+				}
 			}
 		});
-		
-        final MyZSpyApplication app = (MyZSpyApplication)getApplicationContext();
-        app.addMyListener(this);
 	}
 	
 	@Override
@@ -144,22 +154,29 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 	@Override
 	protected void onStop(){
 		super.onStop();
-		if(manager != null){
-			manager.stop();
+		if(threadManager != null){
+			threadManager.stopAll();
+			driverManager.stopAll();
 		}
 		this.finish();
 	}
 	
 	private class toggleListener implements OnCheckedChangeListener{
 		@Override
-		public void onCheckedChanged(CompoundButton buttonView,
-				boolean isChecked) {
+		public void onCheckedChanged(CompoundButton buttonView,boolean isChecked) {
 			if(isChecked){
-	            manager = new ThreadManager(MainActivity.this, ip_text.getText().toString());    
-	        	
+				if(threadManager == null){
+					threadManager = new ThreadManager(MainActivity.this, ip_text.getText().toString());
+		        	driverManager = new DriverManager(threadManager);
+		        	utilsThread = new UtilsThread(threadManager,driverManager);
+				}else{
+					threadManager.restartAll();
+					utilsThread.restart();
+				}
 	            Toast.makeText(MainActivity.this, "Start streaming", Toast.LENGTH_SHORT).show();
 			}else{
-	        	manager.stop();
+	        	threadManager.stopAll();
+	        	driverManager.stopAll();
 	            Toast.makeText(MainActivity.this, "Stop streaming", Toast.LENGTH_SHORT).show();
 			}
 		}
@@ -184,116 +201,6 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 	 */
 	public SurfaceHolder getSurfaceHolder(){
 		return holder;
-	}
-	
-	/**
-	 * Process a button down event from a joystick
-	 * @param event - The button event
-	 * @param cont - The controller the event came from. 0=left, 1=right
-	 */
-	public void buttonDown(ButtonEvent event, int cont){
-		if(cont ==0){
-			switch(event.getButtonGameAction()){
-			case 5:
-				input[Conts.Controller.Buttons.BUTTON_X] = 1;
-				break;
-			case 6:
-				input[Conts.Controller.Buttons.BUTTON_A] = 1;
-				break;
-			case 7:
-				input[Conts.Controller.Buttons.BUTTON_LS] = 1;
-				break;
-			case 8:
-				input[Conts.Controller.Buttons.BUTTON_LB] = 1;
-				break;
-			}
-		}else{
-			switch(event.getButtonGameAction()){
-			case 5:
-				input[Conts.Controller.Buttons.BUTTON_B] = 1;
-				break;
-			case 6:
-				//input[5] = 1;
-				break;
-			case 7:
-				input[Conts.Controller.Buttons.BUTTON_RS] = 1;
-				break;
-			case 8:
-				input[Conts.Controller.Buttons.BUTTON_RB] = 1;
-				break;
-			}
-		}
-
-		if(override){
-			manager.overrideMovement(input);
-		}
-	}
-
-	/**
-	 * Process a button up event from a joystick
-	 * @param event - The button event
-	 * @param cont - The controller the event came from. 0=left, 1=right
-	 */
-	public void buttonUp(ButtonEvent event, int cont) {
-		if(cont == 0){
-			switch(event.getButtonGameAction()){
-			case 5:
-				input[Conts.Controller.Buttons.BUTTON_X] = 0;
-				break;
-			case 6:
-				input[Conts.Controller.Buttons.BUTTON_A] = 0;
-				break;
-			case 7:
-				input[Conts.Controller.Buttons.BUTTON_LS] = 0;
-				break;
-			case 8:
-				input[Conts.Controller.Buttons.BUTTON_LB] = 0;
-				break;
-			}
-		}else{
-			switch(event.getButtonGameAction()){
-			case 5:
-				input[Conts.Controller.Buttons.BUTTON_B] = 0;
-				break;
-			case 6:
-				//input[5] = 0;
-				break;
-			case 7:
-				input[Conts.Controller.Buttons.BUTTON_RS] = 0;
-				break;
-			case 8:
-				input[Conts.Controller.Buttons.BUTTON_RB] = 0;
-				break;
-			}
-		}
-		if(override){
-			manager.overrideMovement(input);
-		}
-	}
-	
-	/**
-	 * Process the movement of the left joystick. At the moment, only concerned
-	 * about Y values
-	 * @param val - The value of the joystick
-	 */
-	public void leftJoystick(int val){
-		Log.e("LEFT STICK: ",""+val);
-		input[10] = (byte)-val;
-		if(override){
-			manager.overrideMovement(input);
-		}
-	}
-	/**
-	 * Process the movement of the right joystick. At the moment, only concerned
-	 * about Y values
-	 * @param val - The value of the joystick
-	 */
-	public void rightJoystick(int val){
-		Log.e("RIGHT STICK: ",""+val);
-		input[11] = (byte)-val;
-		if(override){
-			manager.overrideMovement(input);
-		}
 	}
 	
 	/**
@@ -459,6 +366,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 			Log.e("process_state","recieved null state!");
 			if(cont == 0){
 				reconnectWithDialog(cont + 1);
+			}
+			if(cont == 1){
+				gotControllers = true;
 			}
 		}
 	}

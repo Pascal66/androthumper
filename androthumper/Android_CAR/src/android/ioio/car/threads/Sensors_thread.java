@@ -44,7 +44,7 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
-package android.ioio.car;
+package android.ioio.car.threads;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -82,18 +82,18 @@ public class Sensors_thread implements SensorEventListener {
 	private float x_O, y_O, z_O, x_A, y_A, z_A;
 	private short ix_O, iy_O, iz_O, ix_A, iy_A, iz_A;
 	private boolean changed = false;
-	private UtilsThread utils;
+	//private UtilsThread utils;
+	private ThreadManager manager;
 	
 	private SensorManager mSensorManager = null;	
 
-    public Sensors_thread(MainActivity app, String ip, UtilsThread utils){
-    	utils.registerForSensor(this);
-    	this.utils = utils;
-    	mSensorManager = (SensorManager)app.getSystemService(Context.SENSOR_SERVICE);   
+    Sensors_thread(ThreadManager manager){
+    	this.manager = manager;
+    	mSensorManager = (SensorManager)manager.getMainActivity().getSystemService(Context.SENSOR_SERVICE);   
     	
     	try{
     		socket = new DatagramSocket();
-    		packet = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(ip), Conts.Ports.SENSOR_INCOMING_PORT);
+    		packet = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(manager.getIpAddress()), Conts.Ports.SENSOR_INCOMING_PORT);
     	}catch (Exception e){
     		e.printStackTrace();
     	}
@@ -180,7 +180,7 @@ public class Sensors_thread implements SensorEventListener {
 		}
 		
 		if(changed){
-			if(utils.isConnected()){
+			if(manager.getUtilitiesThread().isConnected()){
 				send_data_UDP();
 				changed = false;
 			}else{

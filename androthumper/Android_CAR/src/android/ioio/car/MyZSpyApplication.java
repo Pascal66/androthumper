@@ -7,6 +7,7 @@ import com.zeemote.zc.event.IJoystickListener;
 import com.zeemote.zc.event.JoystickEvent;
 
 import android.app.Application;
+import android.ioio.car.drivers.ZeemoteDriver;
 
 /**
  * An instance of the application, but with Zeemote libs. Provides access to controllers,
@@ -19,7 +20,7 @@ public class MyZSpyApplication extends Application implements IButtonListener,IJ
 	/**The controllers. */
 	private Controller leftController,rightController;
 	/**The underlying activity. */
-	private MainActivity me;
+	private ZeemoteDriver driver;
 	
 	@Override
 	public void onCreate() {
@@ -35,8 +36,9 @@ public class MyZSpyApplication extends Application implements IButtonListener,IJ
 		super.onCreate();
 	}
 	
-	public void addMyListener(MainActivity me){
-		this.me = me;
+	public void addMyListener(ZeemoteDriver driver){
+		this.driver = driver;
+		this.driver.start();
 	}
 	
 	public Controller getLeftController(){
@@ -57,27 +59,27 @@ public class MyZSpyApplication extends Application implements IButtonListener,IJ
 	@Override
 	public void buttonPressed(ButtonEvent arg0) {
 		if(arg0.getController() == leftController){
-			me.buttonDown(arg0,0);
+			driver.leftButtonDown(arg0);
 		}else{
-			me.buttonDown(arg0,1);
+			driver.rightButtonUp(arg0);
 		}
 	}
 
 	@Override
 	public void buttonReleased(ButtonEvent arg0) {
 		if(arg0.getController() == leftController){
-			me.buttonUp(arg0, 0);
+			driver.leftButtonUp(arg0);
 		}else{
-			me.buttonUp(arg0, 1);
+			driver.rightButtonUp(arg0);
 		}
 	}
 
 	@Override
 	public void joystickMoved(JoystickEvent arg0) {
 		if(arg0.getController() == leftController){
-			me.leftJoystick(arg0.getScaledY(-127, 127));
+			driver.leftJoystick(arg0.getScaledX(-127, 127),arg0.getScaledY(-127, 127));
 		}else{
-			me.rightJoystick(arg0.getScaledY(-127, 127));
+			driver.rightJoystick(arg0.getScaledX(-127, 127),arg0.getScaledY(-127, 127));
 		}
 		
 	}

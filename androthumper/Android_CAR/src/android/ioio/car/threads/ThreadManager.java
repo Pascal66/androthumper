@@ -44,7 +44,9 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
-package android.ioio.car;
+package android.ioio.car.threads;
+
+import android.ioio.car.MainActivity;
 
 
 /**
@@ -59,36 +61,42 @@ public class ThreadManager{
 	private Sensors_thread the_sensors;	
 	/**The ioio thread managing hardware. */
 	private IOIO_Thread ioio_thread_;
-	/**The utils thread that controls the other threads. */
 	private UtilsThread utilsThread;
 	/**The GPS and location feed to the server. */
 	private GPSThread gpsThread;
+	
+	private MainActivity app;
+	private String ipAddress;
 	
 	/**
 	 * Get a new ThreadManager, creating instances of all the threads, and starting them
 	 * @param app - The host application
 	 * @param ip - The ip of the server to connect to
 	 */
-	public ThreadManager(MainActivity app, String ip_address){		
-		utilsThread = new UtilsThread(app, ip_address);
-		the_cam = new Cam_thread(app,ip_address,utilsThread);
-		the_sensors = new Sensors_thread(app,ip_address,utilsThread);
-		ioio_thread_ = new IOIO_Thread(app, ip_address, utilsThread);
-		gpsThread = new GPSThread(ip_address, utilsThread, app);
-		ioio_thread_.start();	
-		the_cam.start_thread();
+	public ThreadManager(MainActivity app, String ip_address){	
+		this.ipAddress = ip_address;
+		this.app = app;
+		//TODO write restart
+		the_cam = new Cam_thread(this);
+		the_sensors = new Sensors_thread(this);
+		ioio_thread_ = new IOIO_Thread(this);
+		gpsThread = new GPSThread(this);	
 	}
     
 	/**
 	 * Stop all the threads
 	 */
-    public void stop(){
+    public void stopAll(){
     	the_cam.stop_thread();
     	the_sensors.stop();
 		ioio_thread_.abort();
-    	utilsThread.stop();
     	gpsThread.disableLocation();
     	gpsThread.disableGPSStatus();
+    }
+    
+    /**Restart all the threads. */
+    public void restartAll(){
+    	//TODO
     }
     
     /**
@@ -96,6 +104,33 @@ public class ThreadManager{
      * @param data - The controller data. Must be formatted according to what the IOIO wants!
      */
     public void overrideMovement(byte[] data){
+    	//TODO replace by zeemote driver
     	ioio_thread_.override(data);
+    }
+    
+    public Cam_thread getCamThread(){
+    	return this.the_cam;
+    }
+    public Sensors_thread getSensorThread(){
+    	return this.the_sensors;
+    }
+    public IOIO_Thread getIOIOThread(){
+    	return this.ioio_thread_;
+    }
+    public void giveUtilities(UtilsThread utils){
+    	this.utilsThread = utils;
+    }
+    public UtilsThread getUtilitiesThread(){
+    	return this.utilsThread;
+    }
+    public GPSThread getGPSThread(){
+    	return this.gpsThread;
+    }
+    
+    public MainActivity getMainActivity(){
+    	return this.app;
+    }
+    public String getIpAddress(){
+    	return ipAddress;
     }
 }

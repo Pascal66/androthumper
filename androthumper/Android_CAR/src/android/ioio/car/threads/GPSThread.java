@@ -1,4 +1,4 @@
-package android.ioio.car;
+package android.ioio.car.threads;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -40,7 +40,7 @@ public class GPSThread implements LocationListener, Listener{
 	/**A packet to hold data to send. */
 	private DatagramPacket packet;
 	/**A handle to the activity. */
-	private MainActivity app;
+	//private MainActivity app;
 	/**The current/last GPS status data. */
 	private GpsStatus gpsStatus;
 	/**A list of the top 6 satellites. */
@@ -57,16 +57,16 @@ public class GPSThread implements LocationListener, Listener{
 	private DataOutputStream locationDataOutput;
 	/**data stream for status data. */
 	private DataOutputStream statusDataOutput;
+	private ThreadManager manager;
 
-	public GPSThread(String ip, UtilsThread utils, MainActivity app){
-
+	GPSThread(ThreadManager manager){
+		this.manager = manager;
 		try {
-			this.app = app;
+			
 			socket = new DatagramSocket();
-			packet = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(ip), Conts.Ports.GPS_INCOMMING_PORT);
+			packet = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(manager.getIpAddress()), Conts.Ports.GPS_INCOMMING_PORT);
 
-			utils.registerForGPS(this);
-			locationManager = (LocationManager)app.getSystemService(Context.LOCATION_SERVICE);
+			locationManager = (LocationManager)manager.getMainActivity().getSystemService(Context.LOCATION_SERVICE);
 			top6Sats = new LinkedList<GpsSatellite>();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
@@ -148,7 +148,7 @@ public class GPSThread implements LocationListener, Listener{
 
 	/**Register location updates from both the network and GPS providers. */
 	public void enableLocation(){
-		app.runOnUiThread(new Runnable(){
+		manager.getMainActivity().runOnUiThread(new Runnable(){
 			@Override
 			public void run(){
 				locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, GPSThread.this);
@@ -161,7 +161,7 @@ public class GPSThread implements LocationListener, Listener{
 	}
 	/**Remove any location listeners. */
 	public void disableLocation(){
-		app.runOnUiThread(new Runnable(){
+		manager.getMainActivity().runOnUiThread(new Runnable(){
 			@Override
 			public void run(){
 				locationManager.removeUpdates(GPSThread.this);
@@ -171,7 +171,7 @@ public class GPSThread implements LocationListener, Listener{
 	
 	/**Enable the GPS status listener. */
 	public void enableGPSStatus(){
-		app.runOnUiThread(new Runnable(){
+		manager.getMainActivity().runOnUiThread(new Runnable(){
 			@Override
 			public void run(){
 				locationManager.addGpsStatusListener(GPSThread.this);
@@ -180,7 +180,7 @@ public class GPSThread implements LocationListener, Listener{
 	}
 	/**Disable the GPS listener. */
 	public void disableGPSStatus(){
-		app.runOnUiThread(new Runnable(){
+		manager.getMainActivity().runOnUiThread(new Runnable(){
 			@Override
 			public void run(){
 				locationManager.removeGpsStatusListener(GPSThread.this);

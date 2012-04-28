@@ -31,6 +31,8 @@ public class Conts {
 		public static final int GPS_POSITION_PACKET_SIZE = 33;
 		/** CODE + 6 sats * (4bytes for SNR, 1 byte for used in prn, 1byte for used (1 used, 0 not used)*/
 		public static final int GPS_STATUS_PACKET_SIZE = 37;
+		/**One for code, one for new driver. */
+		public static final int CHANGE_DRIVER_PACKET_SIZE = 2;
 	}
 	
 	public static class UtilsCodes{
@@ -67,6 +69,10 @@ public class Conts {
 		public static final byte LOST_IOIO_CONNECTION = -2;
 		/**Code used to tell the server gained IOIO connection. */
 		public static final byte GOT_IOIO_CONNECTION = -3;
+		
+		public static final byte CHANGE_DRIVER = -4;
+		public static final byte BASIC_SERVER_DRIVER = -5;
+		public static final byte WAYPOINT_DRIVER = -6;
 	}
 	
 	public static class Controller{

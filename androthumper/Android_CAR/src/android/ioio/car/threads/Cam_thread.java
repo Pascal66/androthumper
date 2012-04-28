@@ -44,7 +44,7 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
-package android.ioio.car;
+package android.ioio.car.threads;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -116,11 +116,11 @@ public class Cam_thread implements Runnable{
 	private boolean STOP_THREAD,inUse = false;
 
 	/**The IP address of the server to send feed. */
-	private String ip_address;
+	//private String ip_address;
 	/**The host activity. */
-	private MainActivity app;
+	//private MainActivity app;
 	/**The Utils thread to control the camera. */
-	private UtilsThread utils;
+	//private UtilsThread utils;
 	/**A list of features provided by OpenCV. */
 	//private LinkedList<Point> features;
 	/**A queue of frames to process. */
@@ -130,11 +130,12 @@ public class Cam_thread implements Runnable{
 	/**The thread doing the processing of the frames from the camera. */
 	private Thread processingThread;
 
-	public Cam_thread(MainActivity app, String ip, UtilsThread utils){
-		this.app = app;
+	private ThreadManager manager;
+	
+	Cam_thread(ThreadManager manager){
+		this.manager = manager;
+
 		mCamera = Camera.open();
-		this.utils = utils;
-		ip_address = ip;
 		compressor = new Deflater();
 		compressor.setLevel(Deflater.BEST_COMPRESSION);
 		byteStream = new ByteArrayOutputStream();
@@ -142,11 +143,13 @@ public class Cam_thread implements Runnable{
 //		dataQueue = new ArrayBlockingQueue<byte[]>(2);
 		processingThread = new Thread(this);
 		processingThread.start();
+		
+		init();
 	}
 
 	private void init(){
 		try {			 
-			serverAddr = InetAddress.getByName(ip_address);
+			serverAddr = InetAddress.getByName(manager.getIpAddress());
 			socket = new DatagramSocket();
 			packet = new DatagramPacket(new byte[]{1}, 1, serverAddr,Conts.Ports.CAMERA_INCOMMING_PORT);
 			Camera.Parameters parameters = mCamera.getParameters(); 
@@ -162,7 +165,7 @@ public class Cam_thread implements Runnable{
 			parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
 			parameters.setColorEffect(Camera.Parameters.EFFECT_NONE);
 			mCamera.setParameters(parameters);
-			mCamera.setPreviewDisplay(app.getSurfaceHolder());
+			mCamera.setPreviewDisplay(manager.getMainActivity().getSurfaceHolder());
 			mCamera.setPreviewCallback(new cam_PreviewCallback());  
 			mCamera.startPreview();
 		}catch (Exception e){
@@ -268,7 +271,7 @@ public class Cam_thread implements Runnable{
 				dest = new Mat();
 			}
 
-			if(utils.isConnected() && utils.getUseCamera()){
+			if(manager.getUtilitiesThread().isConnected() && manager.getUtilitiesThread().getUseCamera()){
 //				m.put(0, 0, data);
 //				if(features == null){
 //					features = new LinkedList<Point>();

@@ -44,7 +44,7 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
-package android.ioio.car;
+package android.ioio.car.threads;
 
 import ioio.lib.api.DigitalInput;
 import ioio.lib.api.DigitalOutput;
@@ -86,35 +86,41 @@ public class IOIO_Thread implements Runnable {
 
 	InetAddress serverAddr;
 	DatagramSocket socket;	
-	String ip_address;
+	//String ip_address;
 
-	MainActivity main_app;
+	//MainActivity main_app;
 	boolean START = true;
 	int a_nb=0;
 
 	private IOIOThread ioioThread;
 	private Thread listenerThread;
-	private UtilsThread utils;
+	//private UtilsThread utils;
 	private boolean listening = true;
 	private byte[] input = new byte[Conts.PacketSize.MOVE_PACKET_SIZE];
 	private final String TAG = "IOIO";
 
-	public IOIO_Thread(MainActivity app, String ip, UtilsThread utils)
-	{
-		main_app = app;
-		this.utils = utils;
-		try {
-			socket = new DatagramSocket();
-			DatagramPacket pingPacket = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(ip), Conts.Ports.MOVE_INCOMMING_PORT);
-			socket.send(pingPacket);
-			Log.e(TAG,"Sent ping.");
-		} catch (SocketException e) {
-			e.printStackTrace();
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	private ThreadManager manager;
+	
+	IOIO_Thread(ThreadManager manager){
+		this.manager = manager;
+		
+		listenerThread = new Thread(this);
+		ioioThread = new IOIOThread();
+		//listenerThread.start();
+		ioioThread.start();
+
+//		try {
+//			socket = new DatagramSocket();
+//			DatagramPacket pingPacket = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(manager.getIpAddress()), Conts.Ports.MOVE_INCOMMING_PORT);
+//			socket.send(pingPacket);
+//			Log.e(TAG,"Sent ping.");
+//		} catch (SocketException e) {
+//			e.printStackTrace();
+//		} catch (UnknownHostException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 	}
 
 	public void abort(){
@@ -125,7 +131,7 @@ public class IOIO_Thread implements Runnable {
 	public void start(){
 		listenerThread = new Thread(this);
 		ioioThread = new IOIOThread();
-		listenerThread.start();
+		//listenerThread.start();
 		ioioThread.start();
 	}
 
@@ -185,20 +191,20 @@ public class IOIO_Thread implements Runnable {
 				} catch (ConnectionLostException e) {
 					//e.printStackTrace();
 					if(connected){
-						utils.sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
+						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
 						connected = false;
 					}
 				} catch (IncompatibilityException e) {
 					//e.printStackTrace();
 					if(connected){
 						connected = false;
-						utils.sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
+						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
 					}
 				} catch (InterruptedException e) {
 					//e.printStackTrace();
 					if(connected){
 						connected = false;
-						utils.sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
+						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
 					}
 				}
 			}
@@ -226,7 +232,7 @@ public class IOIO_Thread implements Runnable {
 		 */
 		private void loop() throws ConnectionLostException{
 			if(!connected){
-				utils.sendCommand(Conts.UtilsCodes.GOT_IOIO_CONNECTION);
+				manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.GOT_IOIO_CONNECTION);
 			}
 			connected = true;
 			//Simply turn on the test LED. This is used to signify right/left controllers (it only lights
@@ -360,7 +366,7 @@ public class IOIO_Thread implements Runnable {
 						dos.write(out);
 						Log.e("IOIO ERROR: ","BYTE: "+out);
 						dos.close();
-						utils.sendData(Arrays.copyOf(baos.toByteArray(), Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE));
+						manager.getUtilitiesThread().sendData(Arrays.copyOf(baos.toByteArray(), Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE));
 					//}
 					reset.write(false);
 					resetted = true;

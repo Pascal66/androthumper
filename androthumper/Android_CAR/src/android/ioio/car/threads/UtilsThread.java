@@ -1,4 +1,4 @@
-package android.ioio.car;
+package android.ioio.car.threads;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -18,6 +18,7 @@ import java.util.concurrent.BlockingQueue;
 import org.apache.http.util.ByteArrayBuffer;
 
 import android.app.Activity;
+import android.ioio.car.drivers.DriverManager;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -31,9 +32,6 @@ import constants.Conts;
  *
  */
 public class UtilsThread{
-
-	/**The host activity. */
-	private Activity host;
 
 	/**A boolean flag to indicate if the threads are allowed to run. */
 	private boolean running = true;
@@ -66,17 +64,18 @@ public class UtilsThread{
 	/**A queue used to buffer output to send. */
 	private BlockingQueue<byte[]> sendingQueue;
 
-	/**A reference to the GPS thread to enable/disable. */
-	private GPSThread gps;
-	/**A reference to the Sensors thread to enable/disable. */
-	private Sensors_thread sensors;
-
-	public UtilsThread(Activity host, String ip){
-		this.host = host;
+	private ThreadManager threadManager;
+	private DriverManager driverManager;
+	
+	public UtilsThread(ThreadManager threadManager,DriverManager driverManager){
+		this.threadManager = threadManager;
+		this.driverManager = driverManager;
+		threadManager.giveUtilities(this);
 		try {
 			sendingQueue = new ArrayBlockingQueue<byte[]>(20);
 			socket = new Socket();
-			SocketAddress address = new InetSocketAddress(InetAddress.getByName(ip), Conts.Ports.UTILS_INCOMMING_PORT);
+			SocketAddress address = new InetSocketAddress(InetAddress.getByName(threadManager.getIpAddress()), Conts.Ports.UTILS_INCOMMING_PORT);
+			//Connect the socket with a timeout, so IO exception is thrown if the connection is not made in time
 			socket.connect(address, 3000);
 
 			socketInput = socket.getInputStream();
@@ -154,38 +153,49 @@ public class UtilsThread{
 			break;
 		case Conts.UtilsCodes.ENABLE_GPS:
 			if(!gpsEnabled){
-				gps.enableLocation();
+				threadManager.getGPSThread().enableLocation();
 				gpsEnabled = true;
 			}
 			break;
 		case Conts.UtilsCodes.DISABLE_GPS:
 			if(gpsEnabled){
-				gps.disableLocation();
+				threadManager.getGPSThread().disableLocation();
 				gpsEnabled = false;
 			}
 			break;
 		case Conts.UtilsCodes.ENABLE_GPS_STATUS:
 			if(!gpsStatusEnabled){
-				gps.enableGPSStatus();
+				threadManager.getGPSThread().enableGPSStatus();
 				gpsStatusEnabled = true;
 			}
 			break;
 		case Conts.UtilsCodes.DISABLE_GPS_STATUS:
 			if(gpsStatusEnabled){
-				gps.disableGPSStatus();
+				threadManager.getGPSThread().disableGPSStatus();
 				gpsStatusEnabled = false;
 			}
 			break;
 		case Conts.UtilsCodes.ENABLE_SENSORS:
 			if(!sensorsEnabled){
 				sensorsEnabled = true;
-				sensors.enableSensors();
+				threadManager.getSensorThread().enableSensors();
 			}
 			break;
 		case Conts.UtilsCodes.DISABLE_SENSORS:
 			if(sensorsEnabled){
 				sensorsEnabled = false;
-				sensors.disableSensors();
+				threadManager.getSensorThread().disableSensors();
+			}
+			break;
+		case Conts.UtilsCodes.CHANGE_DRIVER:
+			driverManager.stopAll();
+			switch(data[1]){
+			case Conts.UtilsCodes.BASIC_SERVER_DRIVER:
+				driverManager.getBasicServerDriver().start();
+				break;
+			case Conts.UtilsCodes.WAYPOINT_DRIVER:
+				driverManager.getWaypointDriver().start();
+				break;
 			}
 			break;
 		case Conts.UtilsCodes.SEND_GPS_WAYPOINTS:
@@ -220,6 +230,9 @@ public class UtilsThread{
 			e.printStackTrace();
 		}
 	}
+	public void restart(){
+		//TODO
+	}
 
 	/**True if the server has requested the camera feed, false if otherwise. */
 	public boolean getUseCamera(){
@@ -238,14 +251,14 @@ public class UtilsThread{
 		return gpsStatusEnabled;
 	}
 
-	/**Register the {@link GPSThread} for control. */
-	public void registerForGPS(GPSThread gps){
-		this.gps = gps;
-	}
-	/**Register the {@link Sensors_thread} for control. */
-	public void registerForSensor(Sensors_thread sensor){
-		this.sensors = sensor;
-	}
+//	/**Register the {@link GPSThread} for control. */
+//	public void registerForGPS(GPSThread gps){
+//		this.gps = gps;
+//	}
+//	/**Register the {@link Sensors_thread} for control. */
+//	public void registerForSensor(Sensors_thread sensor){
+//		this.sensors = sensor;
+//	}
 
 	/**Runnable for the {@link #listeningThread}*/
 	private Runnable listenRunnable = new Runnable() {
@@ -315,10 +328,10 @@ public class UtilsThread{
 
 	private void lostConnection(){
 		stillConnected = false;
-		host.runOnUiThread(new Runnable() {
+		threadManager.getMainActivity().runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-				Toast.makeText(host, "LOST CONNECTION", Toast.LENGTH_SHORT).show();
+				Toast.makeText(threadManager.getMainActivity(), "LOST CONNECTION", Toast.LENGTH_SHORT).show();
 			}
 		});
 
