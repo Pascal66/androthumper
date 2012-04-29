@@ -141,6 +141,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 					}else{
 						Toast.makeText(MainActivity.this, "Connect controllers first.", Toast.LENGTH_SHORT).show();
 					}
+				}else{
+					driverManager.stopAll();
 				}
 			}
 		});

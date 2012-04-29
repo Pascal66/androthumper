@@ -10,11 +10,13 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 import constants.Conts;
 
 import android.R.integer;
 import android.content.Context;
+import android.ioio.car.listeners.MyLocationListener;
 import android.location.GpsSatellite;
 import android.location.GpsStatus;
 import android.location.Location;
@@ -58,11 +60,13 @@ public class GPSThread implements LocationListener, Listener{
 	/**data stream for status data. */
 	private DataOutputStream statusDataOutput;
 	private ThreadManager manager;
+	
+	private List<MyLocationListener> listeners;
 
 	GPSThread(ThreadManager manager){
 		this.manager = manager;
 		try {
-			
+			listeners = new LinkedList<MyLocationListener>();
 			socket = new DatagramSocket();
 			packet = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(manager.getIpAddress()), Conts.Ports.GPS_INCOMMING_PORT);
 
@@ -97,6 +101,10 @@ public class GPSThread implements LocationListener, Listener{
 			}
 
 			if(changed){
+				
+				for(MyLocationListener listener:listeners){
+					listener.gotNewLocation(currentLocation);
+				}
 
 				if(locationOutput != null){
 					locationOutput.reset();
@@ -258,5 +266,9 @@ public class GPSThread implements LocationListener, Listener{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void addMyLocationListener(MyLocationListener listener){
+		listeners.add(listener);
 	}
 }

@@ -67,7 +67,10 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
+import android.ioio.car.listeners.MyCompassListener;
 import android.util.Log;
 import constants.Conts;
 
@@ -100,10 +103,11 @@ public class IOIO_Thread implements Runnable {
 	private final String TAG = "IOIO";
 
 	private ThreadManager manager;
+	private List<MyCompassListener> compassListeners;
 	
 	IOIO_Thread(ThreadManager manager){
 		this.manager = manager;
-		
+		compassListeners = new LinkedList<MyCompassListener>();
 		listenerThread = new Thread(this);
 		ioioThread = new IOIOThread();
 		//listenerThread.start();
@@ -154,6 +158,10 @@ public class IOIO_Thread implements Runnable {
 	 */
 	public void override(byte[] input){
 		this.input = input;
+	}
+	
+	public void addCompassListener(MyCompassListener listener){
+		compassListeners.add(listener);
 	}
 
 	/**
@@ -385,6 +393,7 @@ public class IOIO_Thread implements Runnable {
 			if(input[Conts.Controller.Buttons.BUTTON_B] == 1){
 				if(!setBaud){
 					try {
+						Log.e("IOIO","sent baud");
 						os.write(0xAA);
 					} catch (IOException e) {
 						e.printStackTrace();

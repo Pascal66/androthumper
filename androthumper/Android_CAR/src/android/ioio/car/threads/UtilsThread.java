@@ -201,21 +201,19 @@ public class UtilsThread{
 		case Conts.UtilsCodes.SEND_GPS_WAYPOINTS:
 			DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data, 1, data.length-1));
 
-			Vector<float[]> points = new Vector<float[]>();
+			Vector<double[]> points = new Vector<double[]>();
 			while(true){
 				try {
-					float[] data1 = new float[2];
+					double[] data1 = new double[2];
 					data1[0] = dis.readFloat();
 					data1[1] = dis.readFloat();
 
 				} catch (IOException e) {
 					break;
 				}
-				break;
 			}
-			/*
-			 * Send info to GPS waypoint driver
-			 */
+			driverManager.getWaypointDriver().setNewWaypoints(points);
+			break;
 		}
 	}
 

@@ -3,6 +3,7 @@ package ui;
 import javax.swing.ImageIcon;
 
 import java.awt.Color;
+import java.awt.event.ActionEvent;
 import java.util.Vector;
 
 import javax.swing.JLabel;
@@ -161,9 +162,12 @@ public class Window extends javax.swing.JFrame {
         jMenu2 = new javax.swing.JMenu();
         jMenu3 = new javax.swing.JMenu();
         steeringMenuItem = new javax.swing.JMenuItem();
+        changeControlMenu = new javax.swing.JMenu();
         buttonsMenuItem = new javax.swing.JMenuItem();
         drivingMenuItem = new javax.swing.JMenuItem();
-
+        basicServerDriverItem = new javax.swing.JMenuItem();
+        waypointDriver = new javax.swing.JMenuItem();
+        	
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jLabel19.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
@@ -643,6 +647,30 @@ public class Window extends javax.swing.JFrame {
             }
         });
         jMenu3.add(drivingMenuItem);
+        
+        changeControlMenu.setText("Change driver");
+        
+        basicServerDriverItem.setText("Basic server driver");
+        basicServerDriverItem.addActionListener(new java.awt.event.ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent e) {
+        		System.out.println("I acm actuiall avlice");
+        		byte[] data = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
+        		data[0] = Conts.UtilsCodes.CHANGE_DRIVER;
+        		data[1] = Conts.UtilsCodes.BASIC_SERVER_DRIVER;
+        		utils.sendData(data);
+			}
+        });
+        changeControlMenu.add(basicServerDriverItem);
+        
+        waypointDriver.setText("Waypoint Driver");
+        waypointDriver.addMouseListener(new java.awt.event.MouseAdapter(){
+        	public void mouseClicked(java.awt.event.MouseEvent event){
+        	}
+        });
+        changeControlMenu.add(waypointDriver);
+        
+        jMenu3.add(changeControlMenu);
 
         jMenu2.add(jMenu3);
 
@@ -978,6 +1006,9 @@ public class Window extends javax.swing.JFrame {
     private javax.swing.JProgressBar satProgress6;
     private javax.swing.JLabel satProgress6Label;
     private javax.swing.JMenuItem steeringMenuItem;
+    private javax.swing.JMenu changeControlMenu;
+    private javax.swing.JMenuItem basicServerDriverItem;
+    private javax.swing.JMenuItem waypointDriver;
     private javax.swing.JSlider steeringSlider;
     // End of variables declaration
 }

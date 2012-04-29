@@ -331,17 +331,17 @@ public class MapApplet extends PApplet{
 		
 		try {
 			dos.write(Conts.UtilsCodes.SEND_GPS_WAYPOINTS);
+			
+			for(Location l:points){
+				try {
+					dos.writeFloat(l.getLat());
+					dos.writeFloat(l.getLon());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		} catch (IOException e1) {
 			e1.printStackTrace();
-		}
-		
-		for(Location l:points){
-			try {
-				dos.writeFloat(l.getLat());
-				dos.writeFloat(l.getLon());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 		}
 		
 		return baos.toByteArray();

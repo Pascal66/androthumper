@@ -8,6 +8,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 import android.ioio.car.threads.ThreadManager;
+import android.widget.Toast;
 
 import constants.Conts;
 
@@ -62,6 +63,15 @@ public class BasicServerDriver implements Driver{
 		listening = true;
 		listeningThread = new Thread(listeningRunnable);
 		listeningThread.start();
+		
+		Runnable r = new Runnable() {
+			@Override
+			public void run() {
+				Toast.makeText(driverManager.getThreadManager().getMainActivity(), "Started basic server driver.", Toast.LENGTH_SHORT).show();
+			}
+		};
+		
+		driverManager.getThreadManager().getMainActivity().runOnUiThread(r);
 	}
 	@Override
 	public void stop(){
