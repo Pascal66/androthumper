@@ -182,6 +182,14 @@ public class Cam_thread implements Runnable{
 		socket.close();
 	}
 
+	public void restart(){
+		STOP_THREAD = false;
+		mCamera = Camera.open();
+		processingThread = new Thread(this);
+		processingThread.start();
+		
+		init();
+	}
 	/**
 	 * Send the bitmap image to the server.
 	 */

@@ -172,13 +172,14 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 		        	driverManager = new DriverManager(threadManager);
 		        	utilsThread = new UtilsThread(threadManager,driverManager);
 				}else{
-					threadManager.restartAll();
 					utilsThread.restart();
+					threadManager.restartAll();
 				}
 	            Toast.makeText(MainActivity.this, "Start streaming", Toast.LENGTH_SHORT).show();
 			}else{
 	        	threadManager.stopAll();
 	        	driverManager.stopAll();
+	        	utilsThread.stop();
 	            Toast.makeText(MainActivity.this, "Stop streaming", Toast.LENGTH_SHORT).show();
 			}
 		}

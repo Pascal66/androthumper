@@ -66,7 +66,7 @@ public class UtilsThread{
 
 	private ThreadManager threadManager;
 	private DriverManager driverManager;
-	
+
 	public UtilsThread(ThreadManager threadManager,DriverManager driverManager){
 		this.threadManager = threadManager;
 		this.driverManager = driverManager;
@@ -222,14 +222,50 @@ public class UtilsThread{
 	 */
 	public void stop(){
 		running = false;
+
 		try {
+			socketInput.close();
+			socketOutput.close();
 			socket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	public void restart(){
-		//TODO
+		try {
+			socket = new Socket();
+			SocketAddress address = new InetSocketAddress(InetAddress.getByName(threadManager.getIpAddress()), Conts.Ports.UTILS_INCOMMING_PORT);
+			//Connect the socket with a timeout, so IO exception is thrown if the connection is not made in time
+			socket.connect(address, 3000);
+
+			socketInput = socket.getInputStream();
+			socketOutput = socket.getOutputStream();
+			stillConnected = true;
+			running = true;
+
+			checkerThread = new Thread(checkerRunnable);
+			//			checkerThread.start();
+
+			listeningThread = new Thread(listenRunnable);
+			listeningThread.start();
+
+			sendingThread = new Thread(sendRunnable);
+			sendingThread.start();
+
+			Log.e("utils","end of create");
+		}catch (SocketException e) {
+			e.printStackTrace();
+			stillConnected = false;
+			Log.e("utils","error");
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+			stillConnected = false;
+			Log.e("utils","error");
+		} catch (IOException e) {
+			e.printStackTrace();
+			stillConnected = false;
+			Log.e("utils","error");
+		}
 	}
 
 	/**True if the server has requested the camera feed, false if otherwise. */
@@ -249,14 +285,14 @@ public class UtilsThread{
 		return gpsStatusEnabled;
 	}
 
-//	/**Register the {@link GPSThread} for control. */
-//	public void registerForGPS(GPSThread gps){
-//		this.gps = gps;
-//	}
-//	/**Register the {@link Sensors_thread} for control. */
-//	public void registerForSensor(Sensors_thread sensor){
-//		this.sensors = sensor;
-//	}
+	//	/**Register the {@link GPSThread} for control. */
+	//	public void registerForGPS(GPSThread gps){
+	//		this.gps = gps;
+	//	}
+	//	/**Register the {@link Sensors_thread} for control. */
+	//	public void registerForSensor(Sensors_thread sensor){
+	//		this.sensors = sensor;
+	//	}
 
 	/**Runnable for the {@link #listeningThread}*/
 	private Runnable listenRunnable = new Runnable() {
@@ -271,12 +307,14 @@ public class UtilsThread{
 					byte[] data = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
 					int result = socketInput.read(data);
 					if(result > 0){
-						bab.append(data, bytesReceived, result);
-						bytesReceived+=result;
-						if(bytesReceived == Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE){
-							processData(bab.toByteArray());
-							bab.clear();
-							bytesReceived = 0;
+						if(running){
+							bab.append(data, bytesReceived, result);
+							bytesReceived+=result;
+							if(bytesReceived == Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE){
+								processData(bab.toByteArray());
+								bab.clear();
+								bytesReceived = 0;
+							}
 						}
 					}
 				}catch(IOException e){
@@ -325,13 +363,15 @@ public class UtilsThread{
 	}
 
 	private void lostConnection(){
-		stillConnected = false;
-		threadManager.getMainActivity().runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				Toast.makeText(threadManager.getMainActivity(), "LOST CONNECTION", Toast.LENGTH_SHORT).show();
-			}
-		});
+		if(running && stillConnected){
+			stillConnected = false;
+			threadManager.getMainActivity().runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					Toast.makeText(threadManager.getMainActivity(), "LOST CONNECTION", Toast.LENGTH_SHORT).show();
+				}
+			});
+		}
 
 		/*
 		 * TODO

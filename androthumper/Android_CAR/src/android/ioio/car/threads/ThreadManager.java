@@ -96,7 +96,9 @@ public class ThreadManager{
     
     /**Restart all the threads. */
     public void restartAll(){
-    	//TODO
+		the_cam.restart();
+		the_sensors.restart();
+		ioio_thread_ = new IOIO_Thread(this);	
     }
     
     /**

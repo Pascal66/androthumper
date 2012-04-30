@@ -49,6 +49,7 @@ package android.ioio.car.threads;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 
 import constants.Conts;
 
@@ -104,6 +105,14 @@ public class Sensors_thread implements SensorEventListener {
      */
     public void stop(){
     	socket.close();
+    	disableSensors();
+    }
+    public void restart(){
+    	try {
+			socket = new DatagramSocket();
+		} catch (SocketException e) {
+			e.printStackTrace();
+		}
     }
     
     /**Send data packet to the server. */
