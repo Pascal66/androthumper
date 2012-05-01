@@ -222,13 +222,15 @@ public class UtilsThread{
 	 */
 	public void stop(){
 		running = false;
-
-		try {
-			socketInput.close();
-			socketOutput.close();
-			socket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		
+		if(stillConnected){
+			try {
+				socketInput.close();
+				socketOutput.close();
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	public void restart(){

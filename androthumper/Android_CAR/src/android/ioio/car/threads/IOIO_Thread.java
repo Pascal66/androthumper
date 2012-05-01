@@ -66,6 +66,8 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -174,11 +176,13 @@ public class IOIO_Thread implements Runnable {
 	private class IOIOThread implements Runnable{
 		private Thread thread;
 		private boolean stop = false,setBaud = false,resetted = false,m1HasMoved = false, m0hasMoved = false;
-		private OutputStream os;
-		private InputStream is;
+		private OutputStream os,compassOs;
+		private InputStream is,compassIs;
 		private int m0speed,m1speed;
 		private DigitalOutput testLED;
 		private Uart driver;
+		private Uart compass;
+		private long compassLastReadTime = System.currentTimeMillis();
 		private DigitalInput errorInput;
 		private DigitalOutput reset;
 		private int ACCEL_VAL = 35;
@@ -227,7 +231,9 @@ public class IOIO_Thread implements Runnable {
 				driver = ioio.openUart(4, 5, 9600, Parity.NONE, StopBits.ONE);
 				errorInput = ioio.openDigitalInput(2, DigitalInput.Spec.Mode.PULL_DOWN);
 				reset = ioio.openDigitalOutput(3, true);
-
+				compass = ioio.openUart(9, 10, 9600, Parity.NONE, StopBits.TWO);
+				compassOs = compass.getOutputStream();
+				compassIs = compass.getInputStream();
 				os = driver.getOutputStream();
 				is = driver.getInputStream();
 			} catch (ConnectionLostException e) {
@@ -250,7 +256,9 @@ public class IOIO_Thread implements Runnable {
 			}else{
 				testLED.write(false);
 			}
-
+			
+			getCompassData();
+			
 			//RESET
 			if(input[Conts.Controller.Buttons.BUTTON_X] == 1){
 				reset.write(false);
@@ -479,6 +487,36 @@ public class IOIO_Thread implements Runnable {
 
 				} catch (IOException e) {
 					e.printStackTrace();
+				}
+			}
+		}
+		
+		public void getCompassData(){
+			if((System.currentTimeMillis() - compassLastReadTime) > 640){
+				try{
+					compassOs.write(0x11);
+					int version = compassIs.read();
+					
+					compassOs.write(0x12);
+					int realHeading = compassIs.read();
+					float heading = (360f / 255f) * realHeading;
+					
+					byte[] utilsData = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
+					utilsData[0] = Conts.UtilsCodes.COMPASS_DATA;
+					utilsData[1] = (byte) realHeading;
+					manager.getUtilitiesThread().sendData(utilsData);
+//					ByteBuffer bb = ByteBuffer.allocate(2);
+//					bb.order(ByteOrder.LITTLE_ENDIAN);
+//					bb.put(data[1]);
+//					bb.put(data[0]);
+//					short shortVal = bb.getShort(0);
+					
+					Log.e("COMPASS","Version: "+version);
+					Log.e("COMPASS"," real heading: "+realHeading);
+					Log.e("COMPASS","Heading: "+heading);
+					compassLastReadTime = System.currentTimeMillis();
+				}catch(IOException e){
+					
 				}
 			}
 		}

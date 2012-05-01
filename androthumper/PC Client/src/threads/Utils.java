@@ -110,6 +110,12 @@ public class Utils{
 		case Conts.UtilsCodes.GOT_IOIO_CONNECTION:
 			Window.PrintToLog("got ioio.");
 			break;
+		case Conts.UtilsCodes.COMPASS_DATA:
+			
+			float heading = (360f / 255f) * (data[1] & 0xFF);
+			System.out.println("rael heading: "+(data[1] & 0xFF));
+			System.out.println("heading: "+heading);
+			break;
 		}
 	}
 	

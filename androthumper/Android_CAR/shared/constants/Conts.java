@@ -63,6 +63,8 @@ public class Conts {
 		/**Code used to define a status packet. */
 		public static final int GPS_STATUS_CODE = 0;
 		
+		public static final int COMPASS_DATA = 9;
+		
 		/**Code used to test the connection. Nothing should use this!. */
 		public static final byte UTILS_CONNECTION_TEST = -1;
 		/**Code used to tell the server the client has lost connection to the IOIO. */
