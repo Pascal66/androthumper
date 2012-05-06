@@ -106,6 +106,7 @@ public class IOIO_Thread implements Runnable {
 
 	private ThreadManager manager;
 	private List<MyCompassListener> compassListeners;
+	private float heading;
 	
 	IOIO_Thread(ThreadManager manager){
 		this.manager = manager;
@@ -203,20 +204,20 @@ public class IOIO_Thread implements Runnable {
 				} catch (ConnectionLostException e) {
 					//e.printStackTrace();
 					if(connected){
-						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
+						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.LOST_IOIO_CONNECTION);
 						connected = false;
 					}
 				} catch (IncompatibilityException e) {
 					//e.printStackTrace();
 					if(connected){
 						connected = false;
-						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
+						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.LOST_IOIO_CONNECTION);
 					}
 				} catch (InterruptedException e) {
 					//e.printStackTrace();
 					if(connected){
 						connected = false;
-						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.LOST_IOIO_CONNECTION);
+						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.LOST_IOIO_CONNECTION);
 					}
 				}
 			}
@@ -246,7 +247,7 @@ public class IOIO_Thread implements Runnable {
 		 */
 		private void loop() throws ConnectionLostException{
 			if(!connected){
-				manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.GOT_IOIO_CONNECTION);
+				manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.GOT_IOIO_CONNECTION);
 			}
 			connected = true;
 			//Simply turn on the test LED. This is used to signify right/left controllers (it only lights
@@ -494,27 +495,22 @@ public class IOIO_Thread implements Runnable {
 		public void getCompassData(){
 			if((System.currentTimeMillis() - compassLastReadTime) > 640){
 				try{
-					compassOs.write(0x11);
-					int version = compassIs.read();
+//					compassOs.write(0x11);
+//					int version = compassIs.read();
 					
 					compassOs.write(0x12);
 					int realHeading = compassIs.read();
-					float heading = (360f / 255f) * realHeading;
+					heading = (360f / 255f) * realHeading;
 					
-					byte[] utilsData = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
-					utilsData[0] = Conts.UtilsCodes.COMPASS_DATA;
-					utilsData[1] = (byte) realHeading;
-					manager.getUtilitiesThread().sendData(utilsData);
-//					ByteBuffer bb = ByteBuffer.allocate(2);
-//					bb.order(ByteOrder.LITTLE_ENDIAN);
-//					bb.put(data[1]);
-//					bb.put(data[0]);
-//					short shortVal = bb.getShort(0);
-					
-					Log.e("COMPASS","Version: "+version);
-					Log.e("COMPASS"," real heading: "+realHeading);
-					Log.e("COMPASS","Heading: "+heading);
+//					byte[] utilsData = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
+//					utilsData[0] = Conts.UtilsCodes.DataType.COMPASS_DATA;
+//					utilsData[1] = (byte) realHeading;
+//					manager.getUtilitiesThread().sendData(utilsData);
+
 					compassLastReadTime = System.currentTimeMillis();
+					for(MyCompassListener listener:compassListeners){
+						listener.gotCompassHeading(heading);
+					}
 				}catch(IOException e){
 					
 				}

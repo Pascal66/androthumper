@@ -656,8 +656,8 @@ public class Window extends javax.swing.JFrame {
 			public void actionPerformed(ActionEvent e) {
         		System.out.println("I acm actuiall avlice");
         		byte[] data = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
-        		data[0] = Conts.UtilsCodes.CHANGE_DRIVER;
-        		data[1] = Conts.UtilsCodes.BASIC_SERVER_DRIVER;
+        		data[0] = Conts.UtilsCodes.Command.CHANGE_DRIVER;
+        		data[1] = Conts.Driver.BASIC_SERVER_DRIVER;
         		utils.sendData(data);
 			}
         });
@@ -666,6 +666,9 @@ public class Window extends javax.swing.JFrame {
         waypointDriver.setText("Waypoint Driver");
         waypointDriver.addMouseListener(new java.awt.event.MouseAdapter(){
         	public void mouseClicked(java.awt.event.MouseEvent event){
+        		/*
+        		 * enable here, but not start
+        		 */
         	}
         });
         changeControlMenu.add(waypointDriver);
@@ -687,10 +690,10 @@ public class Window extends javax.swing.JFrame {
 	 */
     private void enableGPSStatusCheckActionPerformed(java.awt.event.ActionEvent evt) {                                                     
 		if(enableGPSStatusCheck.isSelected()){
-			utils.sendCommand(Conts.UtilsCodes.ENABLE_GPS_STATUS);
+			utils.sendCommand(Conts.UtilsCodes.Command.Enable.ENABLE_GPS_STATUS);
 			PrintToLog("Enabling GPS status listening.");
 		}else{
-			utils.sendCommand(Conts.UtilsCodes.DISABLE_GPS_STATUS);
+			utils.sendCommand(Conts.UtilsCodes.Command.Disable.DISABLE_GPS_STATUS);
 			PrintToLog("Disabling GPS status listening.");
 		}
     }                                                    
@@ -701,10 +704,10 @@ public class Window extends javax.swing.JFrame {
 	 */
     private void enableCameraCheckActionPerformed(java.awt.event.ActionEvent evt) {                                                  
 		if(enableCameraCheck.isSelected()){
-			utils.sendCommand(Conts.UtilsCodes.ENABLE_CAM);
+			utils.sendCommand(Conts.UtilsCodes.Command.Enable.ENABLE_CAM);
 			PrintToLog("Enable camera.");
 		}else{
-			utils.sendCommand(Conts.UtilsCodes.DISABLE_CAM);
+			utils.sendCommand(Conts.UtilsCodes.Command.Disable.DISABLE_CAM);
 			PrintToLog("Disabling camera.");
 		}
     }                                                 
@@ -715,10 +718,10 @@ public class Window extends javax.swing.JFrame {
 	 */
     private void enableSensorsCheckActionPerformed(java.awt.event.ActionEvent evt) {                                                   
 		if(enableSensorsCheck.isSelected()){
-			utils.sendCommand(Conts.UtilsCodes.ENABLE_SENSORS);
+			utils.sendCommand(Conts.UtilsCodes.Command.Enable.ENABLE_SENSORS);
 			PrintToLog("Enabling sensor listening.");
 		}else{
-			utils.sendCommand(Conts.UtilsCodes.DISABLE_SENSORS);
+			utils.sendCommand(Conts.UtilsCodes.Command.Disable.DISABLE_SENSORS);
 			PrintToLog("Disabling sensor listening.");
 		}
     }                                                  
@@ -729,10 +732,10 @@ public class Window extends javax.swing.JFrame {
 	 */
     private void enableLocationCheckActionPerformed(java.awt.event.ActionEvent evt) {                                                    
 		if(enableLocationCheck.isSelected()){
-			utils.sendCommand(Conts.UtilsCodes.ENABLE_GPS);
+			utils.sendCommand(Conts.UtilsCodes.Command.Enable.ENABLE_GPS);
 			PrintToLog("Enable location listening.");
 		}else{
-			utils.sendCommand(Conts.UtilsCodes.DISABLE_GPS);
+			utils.sendCommand(Conts.UtilsCodes.Command.Disable.DISABLE_GPS);
 			PrintToLog("Disable location listening.");
 		}
     }                                                   
@@ -892,7 +895,15 @@ public class Window extends javax.swing.JFrame {
 	}
 	
 	public void sendGPSWaypointData(byte[] data){
-		utils.sendData(data);
+		if(!utils.sendData(data)){
+			System.out.println("no send");
+		}
+	}
+	public void stopWaypointDriver(){
+		utils.sendCommand(Conts.Driver.WaypointDriver.STOP_DRIVER);
+	}
+	public void startWaypointDriver(){
+		utils.sendCommand(Conts.Driver.WaypointDriver.START_DRIVER);
 	}
 
     /**

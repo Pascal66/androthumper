@@ -138,10 +138,10 @@ public class Main extends Activity {
 		switch(item.getItemId()){
 		case R.id.main_menu_cam:
 			if(utils.camEnabled){
-				utils.sendCommand(Conts.UtilsCodes.DISABLE_CAM);
+				utils.sendCommand(Conts.UtilsCodes.Command.Disable.DISABLE_CAM);
 				utils.camEnabled = false;
 			}else{
-				utils.sendCommand(Conts.UtilsCodes.ENABLE_CAM);
+				utils.sendCommand(Conts.UtilsCodes.Command.Enable.ENABLE_CAM);
 				utils.camEnabled = true;
 			}
 			break;

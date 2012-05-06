@@ -9,6 +9,8 @@ public class DriverManager {
 	private WaypointDriver waypointDriver;
 	private ZeemoteDriver zeemoteDriver;
 	
+	public Driver currentDriver;
+	
 	public DriverManager(ThreadManager threadManager){
 		this.threadManager = threadManager;
 		

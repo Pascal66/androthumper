@@ -47,11 +47,15 @@ public class MapApplet extends PApplet{
 	private Location currentLocation,pressedLocation;
 	private Vector<Location> points = new Vector<Location>();
 	private Window window;
+	private MapWindow mapWindow;
 	private Location highlightedLocation1, highlightedLocation2;
+	
+	private ContextMenu contextMenu;
 
-	public MapApplet(Window window, float lat, float lng, Vector<float[]> points){
+	public MapApplet(MapWindow mapWindow, Window window, float lat, float lng, Vector<float[]> points){
 		currentLocation = new Location(lat,lng);
 		this.window = window;
+		this.mapWindow = mapWindow;
 
 		for(int i = 0; i < points.size(); i++){
 			float[] pair = points.get(i);
@@ -75,45 +79,49 @@ public class MapApplet extends PApplet{
 	}
 
 	public void draw() {
-		background(0);
-		map.draw();
+		if(contextMenu != null && contextMenu.isShowing()){
+			System.out.println("showing");
+		}else{
+			background(0);
+			map.draw();
 
-		Location last = null;
-		float[] lastPos = null;
-		fill(0,0,0,255);
-		for(int i = 0; i < points.size(); i++){
-			Location l = points.get(i);
-			float[] screenPos = map.getScreenPositionFromLocation(l);
+			Location last = null;
+			float[] lastPos = null;
+			fill(0,0,0,255);
+			for(int i = 0; i < points.size(); i++){
+				Location l = points.get(i);
+				float[] screenPos = map.getScreenPositionFromLocation(l);
 
-			if(last != null){
-				line(screenPos[0],screenPos[1],lastPos[0],lastPos[1]);
+				if(last != null){
+					line(screenPos[0],screenPos[1],lastPos[0],lastPos[1]);
+				}
+
+				ellipse(screenPos[0], screenPos[1], 10, 10);
+				last = l;
+				lastPos = screenPos;
 			}
 
-			ellipse(screenPos[0], screenPos[1], 10, 10);
-			last = l;
-			lastPos = screenPos;
-		}
+			fill(48,139,206,127);
+			float[] myPos = map.getScreenPositionFromLocation(currentLocation);
+			float zoom = 45000/map.getZoom();
+			ellipse(myPos[0], myPos[1], accuracy/zoom, accuracy/zoom);
+			fill(48,139,206,255);
+			zoom = 200000/map.getZoom();
+			ellipse(myPos[0],myPos[1],accuracy/zoom,accuracy/zoom);
 
-		fill(48,139,206,127);
-		float[] myPos = map.getScreenPositionFromLocation(currentLocation);
-		float zoom = 45000/map.getZoom();
-		ellipse(myPos[0], myPos[1], accuracy/zoom, accuracy/zoom);
-		fill(48,139,206,255);
-		zoom = 200000/map.getZoom();
-		ellipse(myPos[0],myPos[1],accuracy/zoom,accuracy/zoom);
-
-		if(highlightedLocation1 != null){
-			fill(27,224,50,255);
-			float[] screenPos = map.getScreenPositionFromLocation(highlightedLocation1);
-			ellipse(screenPos[0], screenPos[1], 10, 10);
+			if(highlightedLocation1 != null){
+				fill(27,224,50,255);
+				float[] screenPos = map.getScreenPositionFromLocation(highlightedLocation1);
+				ellipse(screenPos[0], screenPos[1], 10, 10);
+			}
+			if(highlightedLocation2 != null){
+				fill(28,139,206,255);
+				float[] screenPos = map.getScreenPositionFromLocation(highlightedLocation2);
+				ellipse(screenPos[0], screenPos[1], 10, 10);
+			}
+			fill(0,0,0,255);
+			drawBarScale(20, map.mapDisplay.getHeight() - 20);
 		}
-		if(highlightedLocation2 != null){
-			fill(28,139,206,255);
-			float[] screenPos = map.getScreenPositionFromLocation(highlightedLocation2);
-			ellipse(screenPos[0], screenPos[1], 10, 10);
-		}
-		fill(0,0,0,255);
-		drawBarScale(20, map.mapDisplay.getHeight() - 20);
 	}
 
 	public void jumpToLocation(float lat, float lng){
@@ -132,7 +140,11 @@ public class MapApplet extends PApplet{
 		if(e.getButton() == MouseEvent.BUTTON1){
 			handleLeftClick(e.getX(), e.getY());
 		}else if(e.getButton() == MouseEvent.BUTTON3){
-			handleRightClick(e.getX(), e.getY());
+			if(!handleRightClick(e.getX(), e.getY())){
+				mapWindow.showMenu(e.getX(), e.getY());
+			}	
+		}else{
+			super.mouseClicked(e);
 		}
 	}
 
@@ -219,17 +231,20 @@ public class MapApplet extends PApplet{
 
 
 	}
-	private void handleRightClick(int x, int y){
+	public boolean handleRightClick(int x, int y){
+		boolean returnVal = false;
 		for(int i = 0; i <points.size(); i++){
 			Location l = points.get(i);
 			float[] screenPos = map.getScreenPositionFromLocation(l);
 			if(dist(screenPos[0],screenPos[1],x,y) < 10){
 				points.remove(l);
+				returnVal = true;
 				if(window != null){
 					window.setPoints(floatsFromLocations());
 				}
 			}
 		}
+		return returnVal;
 	}
 
 	public void keyPressed() {
@@ -330,8 +345,7 @@ public class MapApplet extends PApplet{
 		DataOutputStream dos = new DataOutputStream(baos);
 		
 		try {
-			dos.write(Conts.UtilsCodes.SEND_GPS_WAYPOINTS);
-			
+			dos.writeInt(points.size());
 			for(Location l:points){
 				try {
 					dos.writeFloat(l.getLat());

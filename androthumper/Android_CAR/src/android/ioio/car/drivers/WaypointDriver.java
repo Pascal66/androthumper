@@ -8,26 +8,35 @@ import java.util.Vector;
 import android.ioio.car.listeners.MyCompassListener;
 import android.ioio.car.listeners.MyLocationListener;
 import android.location.Location;
+import android.util.Log;
 
 public class WaypointDriver implements Driver{
 
 	private List<Location> waypoints = new LinkedList<Location>();
 	private Location currentLocation;
-	private int currentHeading;
+	private float currentHeading;
 	private boolean running = false,waiting = false;
 	private Thread drivingThread;
+	private DriverManager driverManager;
+	private long lastMessageTime;
 
 	public WaypointDriver(DriverManager driverManager){
+		this.driverManager = driverManager;
 		waypoints = new LinkedList<Location>();
+		currentLocation = new Location("empty");
+		currentLocation.setLatitude(-200);
+		currentLocation.setLongitude(-200);
 
 		//register for GPS updates
 		driverManager.getThreadManager().getGPSThread().addMyLocationListener(new MyLocationListener() {
 			@Override
 			public void gotNewLocation(Location L) {
+				Log.e("recieved:","");
 				synchronized (currentLocation) {
 					currentLocation = L;
 					if(waiting){
 						currentLocation.notify();
+						Log.e("notified:","");
 					}
 				};
 
@@ -36,7 +45,7 @@ public class WaypointDriver implements Driver{
 		//and for compass updates
 		driverManager.getThreadManager().getIOIOThread().addCompassListener(new MyCompassListener() {
 			@Override
-			public void gotCompassHeading(int heading) {
+			public void gotCompassHeading(float heading) {
 				currentHeading = heading;
 			}
 		});
@@ -59,8 +68,11 @@ public class WaypointDriver implements Driver{
 
 	@Override
 	public void start() {
-		running = true;
-		drivingThread.start();
+		lastMessageTime = System.currentTimeMillis();
+		if(!running){
+			running = true;
+			drivingThread.start();
+		}
 		/*
 		 * thread:
 		 * wait for location
@@ -96,34 +108,60 @@ public class WaypointDriver implements Driver{
 				nextLocation = pointIter.next();
 			}else{
 				//no points to drive to TODO
+				Log.e("waypoint","done");
+				running=false;
 			}
 			
 			while(running){
-				if(currentLocation == null){
+				if(currentLocation.getLatitude() == -200){
 					try {
 						waiting = true;
-						currentLocation.wait();
+						synchronized (currentLocation) {
+							currentLocation.wait();
+						}
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
 				}
-				
+
 				if(isNear(currentLocation, nextLocation)){
 					//are at the location, onto next
 					if(pointIter.hasNext()){
 						nextLocation = pointIter.next();
 					}else{
 						//ran out of points TODO
+						Log.e("waypoint","hit point");
 					}
 				}else{
 					//are not at next location. Compare desired heading against actual
 					desiredHeading = currentLocation.bearingTo(nextLocation);
+//					if(desiredHeading < 0){
+//						desiredHeading = 360-desiredHeading;
+//					}
+					
+					float newHeading=0;
+					if(currentHeading > 180){
+						newHeading = -180+(currentHeading-180);
+					}else{
+						newHeading = currentHeading;
+					}
+					
+					float difference = desiredHeading-newHeading;
+					
+					if((System.currentTimeMillis() - lastMessageTime) > 500){
+						lastMessageTime = System.currentTimeMillis();
+						if(!driverManager.getThreadManager().getUtilitiesThread().sendMessage(("heading to: "+desiredHeading+", current: "+currentHeading+", modified to: "+newHeading+" correcting by: "+difference))){
+							if(!driverManager.getThreadManager().getUtilitiesThread().sendMessage("message lost")){
+								Log.e("Waypoint driver","could not send");
+							}
+						}
+					}
+					
 					/*
-					 * TODO
-					 * if desired heading and actual heading are within some limit, keep going
-					 * else, by degree of difference, apply more drive to appropriate side
+					 * negative is left, positive is right
 					 */
 				}
+				Thread.yield();
 			}
 		}
 	};

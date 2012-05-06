@@ -1,7 +1,9 @@
 package android.ioio.car.threads;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,6 +13,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -58,7 +61,7 @@ public class UtilsThread{
 	private OutputStream socketOutput;
 	/**The input stream to read data from the server. */
 	private InputStream socketInput;
-	private ByteArrayBuffer bab;
+	private ByteArrayOutputStream bab;
 	private int bytesReceived = 0;
 
 	/**A queue used to buffer output to send. */
@@ -129,8 +132,28 @@ public class UtilsThread{
 		if(data.length != Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE){
 			return false;
 		}
-		sendingQueue.add(data);
+		if(!sendingQueue.offer(data)){
+			Log.e("Utils Thread","COULD NOT SEND DATA, FULL");
+		}
 		return true;
+	}
+	
+	public boolean sendMessage(String message){
+		try {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream(Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE);
+			DataOutputStream dis = new DataOutputStream(baos);
+			dis.write(Conts.UtilsCodes.DataType.SEND_MESSAGE_DATA);
+			dis.writeInt(message.length());
+			dis.writeChars(message);
+			byte[] data = baos.toByteArray();
+			byte[] result = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
+			System.arraycopy(data, 0, result, 0, data.length);
+			return sendData(result);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false;
 	}
 
 	/**
@@ -141,76 +164,85 @@ public class UtilsThread{
 		switch(data[0]){
 		case Conts.UtilsCodes.UTILS_CONNECTION_TEST:
 			break;
-		case Conts.UtilsCodes.ENABLE_CAM:
+		case Conts.UtilsCodes.Command.Enable.ENABLE_CAM:
 			if(!camEnabled){
 				camEnabled = true;
 			}
 			break;
-		case Conts.UtilsCodes.DISABLE_CAM:
+		case Conts.UtilsCodes.Command.Disable.DISABLE_CAM:
 			if(camEnabled){
 				camEnabled = false;
 			}
 			break;
-		case Conts.UtilsCodes.ENABLE_GPS:
+		case Conts.UtilsCodes.Command.Enable.ENABLE_GPS:
 			if(!gpsEnabled){
 				threadManager.getGPSThread().enableLocation();
 				gpsEnabled = true;
 			}
 			break;
-		case Conts.UtilsCodes.DISABLE_GPS:
+		case Conts.UtilsCodes.Command.Disable.DISABLE_GPS:
 			if(gpsEnabled){
 				threadManager.getGPSThread().disableLocation();
 				gpsEnabled = false;
 			}
 			break;
-		case Conts.UtilsCodes.ENABLE_GPS_STATUS:
+		case Conts.UtilsCodes.Command.Enable.ENABLE_GPS_STATUS:
 			if(!gpsStatusEnabled){
 				threadManager.getGPSThread().enableGPSStatus();
 				gpsStatusEnabled = true;
 			}
 			break;
-		case Conts.UtilsCodes.DISABLE_GPS_STATUS:
+		case Conts.UtilsCodes.Command.Disable.DISABLE_GPS_STATUS:
 			if(gpsStatusEnabled){
 				threadManager.getGPSThread().disableGPSStatus();
 				gpsStatusEnabled = false;
 			}
 			break;
-		case Conts.UtilsCodes.ENABLE_SENSORS:
+		case Conts.UtilsCodes.Command.Enable.ENABLE_SENSORS:
 			if(!sensorsEnabled){
 				sensorsEnabled = true;
 				threadManager.getSensorThread().enableSensors();
 			}
 			break;
-		case Conts.UtilsCodes.DISABLE_SENSORS:
+		case Conts.UtilsCodes.Command.Disable.DISABLE_SENSORS:
 			if(sensorsEnabled){
 				sensorsEnabled = false;
 				threadManager.getSensorThread().disableSensors();
 			}
 			break;
-		case Conts.UtilsCodes.CHANGE_DRIVER:
+		case Conts.UtilsCodes.Command.CHANGE_DRIVER:
 			driverManager.stopAll();
 			switch(data[1]){
-			case Conts.UtilsCodes.BASIC_SERVER_DRIVER:
+			case Conts.Driver.BASIC_SERVER_DRIVER:
 				driverManager.getBasicServerDriver().start();
 				break;
-			case Conts.UtilsCodes.WAYPOINT_DRIVER:
-				driverManager.getWaypointDriver().start();
+			case Conts.Driver.WAYPOINT_DRIVER:
+				//driverManager.getWaypointDriver().start();
+				//TODO not here? Separate start/stop
 				break;
 			}
 			break;
-		case Conts.UtilsCodes.SEND_GPS_WAYPOINTS:
+		case Conts.Driver.WaypointDriver.START_DRIVER:
+			driverManager.getWaypointDriver().start();
+			break;
+		case Conts.Driver.WaypointDriver.STOP_DRIVER:
+			driverManager.getWaypointDriver().stop();
+			break;
+		case Conts.UtilsCodes.DataType.SEND_GPS_WAYPOINTS:
 			DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data, 1, data.length-1));
 
-			Vector<double[]> points = new Vector<double[]>();
-			while(true){
-				try {
+			Vector<double[]> points = null;
+			try {
+				int size = dis.readInt();
+				points = new Vector<double[]>();
+				for(int i = 0; i<size; i++){
 					double[] data1 = new double[2];
 					data1[0] = dis.readFloat();
 					data1[1] = dis.readFloat();
-
-				} catch (IOException e) {
-					break;
+					points.add(data1);
 				}
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 			driverManager.getWaypointDriver().setNewWaypoints(points);
 			break;
@@ -222,7 +254,7 @@ public class UtilsThread{
 	 */
 	public void stop(){
 		running = false;
-		
+
 		if(stillConnected){
 			try {
 				socketInput.close();
@@ -235,6 +267,7 @@ public class UtilsThread{
 	}
 	public void restart(){
 		try {
+			bytesReceived = 0;
 			socket = new Socket();
 			SocketAddress address = new InetSocketAddress(InetAddress.getByName(threadManager.getIpAddress()), Conts.Ports.UTILS_INCOMMING_PORT);
 			//Connect the socket with a timeout, so IO exception is thrown if the connection is not made in time
@@ -303,18 +336,20 @@ public class UtilsThread{
 			while(running && stillConnected){
 				try{
 					if(bab == null){
-						bab = new ByteArrayBuffer(Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE);
+						bab = new ByteArrayOutputStream(Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE);
 					}
 
 					byte[] data = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
 					int result = socketInput.read(data);
 					if(result > 0){
 						if(running){
-							bab.append(data, bytesReceived, result);
+							//bab.append(data, bytesReceived, result);
+							bab.write(data, 0, result);
 							bytesReceived+=result;
 							if(bytesReceived == Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE){
 								processData(bab.toByteArray());
-								bab.clear();
+								//bab.clear();
+								bab.reset();
 								bytesReceived = 0;
 							}
 						}

@@ -1,5 +1,7 @@
 package threads;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -104,17 +106,31 @@ public class Utils{
 			
 			System.out.println("Recieved IOIO error:"+data[1]);
 			break;
-		case Conts.UtilsCodes.LOST_IOIO_CONNECTION:
+		case Conts.UtilsCodes.IOIO.LOST_IOIO_CONNECTION:
 			Window.PrintToLog("lost ioio.");
 			break;
-		case Conts.UtilsCodes.GOT_IOIO_CONNECTION:
+		case Conts.UtilsCodes.IOIO.GOT_IOIO_CONNECTION:
 			Window.PrintToLog("got ioio.");
 			break;
-		case Conts.UtilsCodes.COMPASS_DATA:
-			
+		case Conts.UtilsCodes.DataType.COMPASS_DATA:
 			float heading = (360f / 255f) * (data[1] & 0xFF);
 			System.out.println("rael heading: "+(data[1] & 0xFF));
 			System.out.println("heading: "+heading);
+			break;
+		case Conts.UtilsCodes.DataType.SEND_MESSAGE_DATA:
+			try {
+				ByteArrayInputStream bais = new ByteArrayInputStream(data, 1, data.length-1);
+				DataInputStream dis = new DataInputStream(bais);
+				int size = dis.readInt();
+				StringBuilder builder = new StringBuilder();
+				for(int i = 0; i < size; i++){
+					builder.append(dis.readChar());
+				}
+				System.out.println(builder.toString());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			break;
 		}
 	}

@@ -36,45 +36,64 @@ public class Conts {
 	}
 	
 	public static class UtilsCodes{
-		/**Code to enable location updates. */
-		public static final byte ENABLE_GPS = 0;
-		/**Code to disable location updates. */
-		public static final byte DISABLE_GPS = 1;
+		public static class Command{
+			/**Contains byte values to enable features. */
+			public static class Enable{
+				/**Code to enable location updates. */
+				public static final byte ENABLE_GPS = 0;
+				/**Code to enable GPS status updates. */
+				public static final byte ENABLE_GPS_STATUS = 6;
+				/**Code to enable camera feed. */
+				public static final byte ENABLE_CAM = 2;
+				/**Code to enable sensors. */
+				public static final byte ENABLE_SENSORS = 4;
+			}
+			/**Contains byte values to disable features. */
+			public static class Disable{
+				/**Code to disable location updates. */
+				public static final byte DISABLE_GPS = 1;
+				/**Code to disable GPS status updates. */
+				public static final byte DISABLE_GPS_STATUS = 7;
+				/**Code to disable camera feed. */
+				public static final byte DISABLE_CAM = 3;
+				/**Code to disable sensors. */
+				public static final byte DISABLE_SENSORS = 5;
+			}
+
+			public static final byte CHANGE_DRIVER = -4;
+		}
+
+		/**Contains byte values about the IOIO. */
+		public static class IOIO{
+			/**Code used to tell the server the client has lost connection to the IOIO. */
+			public static final byte LOST_IOIO_CONNECTION = -2;
+			/**Code used to tell the server gained IOIO connection. */
+			public static final byte GOT_IOIO_CONNECTION = -3;
+		}
 		
-		/**Code to enable GPS status updates. */
-		public static final byte ENABLE_GPS_STATUS = 6;
-		/**Code to disable GPS status updates. */
-		public static final byte DISABLE_GPS_STATUS = 7;
-		
-		public static final byte SEND_GPS_WAYPOINTS = 8;
-		
-		/**Code to enable camera feed. */
-		public static final byte ENABLE_CAM = 2;
-		/**Code to disable camera feed. */
-		public static final byte DISABLE_CAM = 3;
-		
-		/**Code to enable sensors. */
-		public static final byte ENABLE_SENSORS = 4;
-		/**Code to disable sensors. */
-		public static final byte DISABLE_SENSORS = 5;
-		
-		/**Code using to define a location packet. */
-		public static final int GPS_POSITION_CODE = 1;
-		/**Code used to define a status packet. */
-		public static final int GPS_STATUS_CODE = 0;
-		
-		public static final int COMPASS_DATA = 9;
-		
+		public static class DataType{
+			public static final int COMPASS_DATA = 9;
+			/**Code using to define a location packet. */
+			public static final int GPS_POSITION_DATA = 1;
+			/**Code used to define a status packet. */
+			public static final int GPS_STATUS_DATA = 0;
+			public static final byte SEND_GPS_WAYPOINTS = 8;	
+			public static final int SEND_MESSAGE_DATA = 10;
+		}
+	
 		/**Code used to test the connection. Nothing should use this!. */
 		public static final byte UTILS_CONNECTION_TEST = -1;
-		/**Code used to tell the server the client has lost connection to the IOIO. */
-		public static final byte LOST_IOIO_CONNECTION = -2;
-		/**Code used to tell the server gained IOIO connection. */
-		public static final byte GOT_IOIO_CONNECTION = -3;
-		
-		public static final byte CHANGE_DRIVER = -4;
+	}
+	
+	
+	public static class Driver{
 		public static final byte BASIC_SERVER_DRIVER = -5;
 		public static final byte WAYPOINT_DRIVER = -6;
+		
+		public static class WaypointDriver{
+			public static final byte STOP_DRIVER = -10;
+			public static final byte START_DRIVER = -11;
+		}
 	}
 	
 	public static class Controller{

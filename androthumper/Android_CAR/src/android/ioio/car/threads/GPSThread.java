@@ -116,7 +116,7 @@ public class GPSThread implements LocationListener, Listener{
 				
 				//Write the location code, then write the location data to the byte[]
 				try {
-					locationDataOutput.write(Conts.UtilsCodes.GPS_POSITION_CODE);
+					locationDataOutput.write(Conts.UtilsCodes.DataType.GPS_POSITION_DATA);
 					locationDataOutput.writeDouble(currentLocation.getLatitude());
 					locationDataOutput.writeDouble(currentLocation.getLongitude());
 					locationDataOutput.writeDouble(currentLocation.getAltitude());
@@ -241,7 +241,7 @@ public class GPSThread implements LocationListener, Listener{
 
 		//Write the status code, then write the details of the top 6 satellites into the byte[]
 		try {
-			statusDataOutput.write(Conts.UtilsCodes.GPS_STATUS_CODE);
+			statusDataOutput.write(Conts.UtilsCodes.DataType.GPS_STATUS_DATA);
 
 			for(int i = 0; i < sats.length; i++){
 				if(sats[i] != null){

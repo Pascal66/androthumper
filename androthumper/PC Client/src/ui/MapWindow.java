@@ -5,6 +5,13 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Vector;
 
 import javax.swing.BorderFactory;
@@ -12,11 +19,14 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import constants.Conts;
+
 
 public class MapWindow extends JFrame{
 
 	final MapApplet app;
 	final Window mainWindow;
+	private ContextMenu contextMenu;
 	
 	public MapWindow(Window window, float lat, float lng, Vector<float[]> points){
 		mainWindow = window;
@@ -26,7 +36,7 @@ public class MapWindow extends JFrame{
 		
 		JPanel panel = new JPanel();
 		panel.setPreferredSize(new Dimension(600, 600));
-		app = new MapApplet(window, lat, lng, points);
+		app = new MapApplet(this,window, lat, lng, points);
 		app.setPreferredSize(new Dimension(600, 600));
 		panel.add(app);
 		this.add(panel);
@@ -34,21 +44,27 @@ public class MapWindow extends JFrame{
         java.awt.GridBagConstraints gridBagConstraints;
 
         JPanel jPanel1 = new javax.swing.JPanel();
-        JButton jButton1 = new javax.swing.JButton();
+        JButton startButton = new javax.swing.JButton();
         JButton sendButton = new javax.swing.JButton();
         JButton stopButton = new javax.swing.JButton();
         JButton clearButton = new javax.swing.JButton();
 
         jPanel1.setLayout(new java.awt.GridBagLayout());
 
-        jButton1.setText("Start");
+        startButton.setText("Start");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
-        jPanel1.add(jButton1, gridBagConstraints);
+        jPanel1.add(startButton, gridBagConstraints);
+        startButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				mainWindow.startWaypointDriver();
+			}
+		});
         
         stopButton.setText("Stop");
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -58,6 +74,12 @@ public class MapWindow extends JFrame{
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         jPanel1.add(stopButton, gridBagConstraints);
+        stopButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				mainWindow.stopWaypointDriver();
+			}
+		});
 
         sendButton.setText("Send waypoints");
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -69,8 +91,19 @@ public class MapWindow extends JFrame{
         jPanel1.add(sendButton, gridBagConstraints);
         sendButton.addActionListener(new ActionListener() {
 			@Override
-			public void actionPerformed(ActionEvent e) {
-				mainWindow.sendGPSWaypointData(app.getPointsAsByteArray());
+			public void actionPerformed(ActionEvent e) {		
+				try {
+					ByteArrayOutputStream baos = new ByteArrayOutputStream(Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE);
+					baos.write(Conts.UtilsCodes.DataType.SEND_GPS_WAYPOINTS);
+					baos.write(app.getPointsAsByteArray());
+					byte[] info = baos.toByteArray();
+					byte[] data = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
+					System.arraycopy(info, 0, data, 0, info.length);
+					mainWindow.sendGPSWaypointData(data);
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+				
 			}
 		});
 
@@ -97,5 +130,12 @@ public class MapWindow extends JFrame{
 	
 	public void jumpToLocation(float lat, float lng){
 		app.jumpToLocation(lat, lng);
+	}
+	
+	public void showMenu(int x, int y){
+		System.out.println("here");
+		contextMenu = new ContextMenu();
+		contextMenu.show(this, x, y);
+		System.out.println("shoig");
 	}
 }
