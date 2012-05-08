@@ -186,9 +186,11 @@ public class IOIO_Thread implements Runnable {
 		private long compassLastReadTime = System.currentTimeMillis();
 		private DigitalInput errorInput;
 		private DigitalOutput reset;
-		private int ACCEL_VAL = 35;
 		
-		private boolean connected = false;
+		private int ACCEL_VAL = 35;
+		private int COMPASS_READ_TIME = 200;
+		
+		private boolean connected = false,stopRequest = false;
 
 		@Override
 		public void run() {
@@ -418,6 +420,12 @@ public class IOIO_Thread implements Runnable {
 				m0hasMoved = false;
 			}
 
+			if(stopRequest){
+				input[Conts.Controller.Channel.LEFT_CHANNEL] = 0;
+				input[Conts.Controller.Channel.RIGHT_CHANNEL] = 0;
+				stop = true;
+			}
+			
 			if(setBaud){
 				try {
 					//RIGHT STICK
@@ -493,14 +501,14 @@ public class IOIO_Thread implements Runnable {
 		}
 		
 		public void getCompassData(){
-			if((System.currentTimeMillis() - compassLastReadTime) > 640){
+			if((System.currentTimeMillis() - compassLastReadTime) > COMPASS_READ_TIME){
 				try{
 //					compassOs.write(0x11);
 //					int version = compassIs.read();
 					
 					compassOs.write(0x12);
 					int realHeading = compassIs.read();
-					heading = (360f / 255f) * realHeading;
+					heading = (realHeading / 255f) * 360;
 					
 //					byte[] utilsData = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
 //					utilsData[0] = Conts.UtilsCodes.DataType.COMPASS_DATA;
@@ -518,7 +526,7 @@ public class IOIO_Thread implements Runnable {
 		}
 
 		public void abort(){
-			stop = true;
+			stopRequest = true;
 		}
 		public void start(){
 			thread = new Thread(this);

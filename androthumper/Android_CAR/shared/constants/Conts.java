@@ -100,6 +100,7 @@ public class Conts {
 		
 		public static class Buttons{
 			public static final int BUTTON_A = 0;
+			/**XBox B button, used for setting baud rate. */
 			public static final int BUTTON_B = 1;
 			public static final int BUTTON_X = 2;
 			public static final int BUTTON_Y = 3;
@@ -112,6 +113,12 @@ public class Conts {
 		}
 		public static class Axis{
 			
+		}
+		public static class Channel{
+			/**Used for controlling the left side of thumper. */
+			public static final int LEFT_CHANNEL = 10;
+			/**Used for controlling the right side of thumper. */
+			public static final int RIGHT_CHANNEL = 11;
 		}
 	}
 }

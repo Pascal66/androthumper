@@ -1,4 +1,4 @@
-package ui;
+package ui.map;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -18,6 +18,9 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+
+import ui.ContextMenu;
+import ui.Window;
 
 import constants.Conts;
 

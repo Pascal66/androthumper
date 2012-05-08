@@ -86,12 +86,10 @@ public class ZeemoteDriver implements Driver{
 	}
 	
 	public boolean leftJoystick(int x, int y){
-		//Log.e("LEFT STICK: ",""+y);
 		input[10] = (byte)-y;
 		return commit();
 	}
 	public boolean rightJoystick(int x, int y){
-		Log.e("RIGHT STICK: ",""+y);
 		input[11] = (byte)-y;
 		return commit();
 	}

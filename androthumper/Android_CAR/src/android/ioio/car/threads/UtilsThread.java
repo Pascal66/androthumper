@@ -167,47 +167,55 @@ public class UtilsThread{
 		case Conts.UtilsCodes.Command.Enable.ENABLE_CAM:
 			if(!camEnabled){
 				camEnabled = true;
+				sendMessage("PHONE - Enable camera");
 			}
 			break;
 		case Conts.UtilsCodes.Command.Disable.DISABLE_CAM:
 			if(camEnabled){
 				camEnabled = false;
+				sendMessage("PHONE - Disable camera");
 			}
 			break;
 		case Conts.UtilsCodes.Command.Enable.ENABLE_GPS:
 			if(!gpsEnabled){
 				threadManager.getGPSThread().enableLocation();
 				gpsEnabled = true;
+				sendMessage("PHONE - Enable location");
 			}
 			break;
 		case Conts.UtilsCodes.Command.Disable.DISABLE_GPS:
 			if(gpsEnabled){
 				threadManager.getGPSThread().disableLocation();
 				gpsEnabled = false;
+				sendMessage("PHONE - Disable location");
 			}
 			break;
 		case Conts.UtilsCodes.Command.Enable.ENABLE_GPS_STATUS:
 			if(!gpsStatusEnabled){
 				threadManager.getGPSThread().enableGPSStatus();
 				gpsStatusEnabled = true;
+				sendMessage("PHONE - Enable GPS status");
 			}
 			break;
 		case Conts.UtilsCodes.Command.Disable.DISABLE_GPS_STATUS:
 			if(gpsStatusEnabled){
 				threadManager.getGPSThread().disableGPSStatus();
 				gpsStatusEnabled = false;
+				sendMessage("PHONE - Disable GPS Status");
 			}
 			break;
 		case Conts.UtilsCodes.Command.Enable.ENABLE_SENSORS:
 			if(!sensorsEnabled){
 				sensorsEnabled = true;
 				threadManager.getSensorThread().enableSensors();
+				sendMessage("PHONE - Enable sensors");
 			}
 			break;
 		case Conts.UtilsCodes.Command.Disable.DISABLE_SENSORS:
 			if(sensorsEnabled){
 				sensorsEnabled = false;
 				threadManager.getSensorThread().disableSensors();
+				sendMessage("PHONE - Disable sensors");
 			}
 			break;
 		case Conts.UtilsCodes.Command.CHANGE_DRIVER:
@@ -215,6 +223,7 @@ public class UtilsThread{
 			switch(data[1]){
 			case Conts.Driver.BASIC_SERVER_DRIVER:
 				driverManager.getBasicServerDriver().start();
+				sendMessage("PHONE - Start basic server driver");
 				break;
 			case Conts.Driver.WAYPOINT_DRIVER:
 				//driverManager.getWaypointDriver().start();
@@ -224,9 +233,11 @@ public class UtilsThread{
 			break;
 		case Conts.Driver.WaypointDriver.START_DRIVER:
 			driverManager.getWaypointDriver().start();
+			sendMessage("PHONE - Start waypoint driver");
 			break;
 		case Conts.Driver.WaypointDriver.STOP_DRIVER:
 			driverManager.getWaypointDriver().stop();
+			sendMessage("PHONE - Stop waypoint driver");
 			break;
 		case Conts.UtilsCodes.DataType.SEND_GPS_WAYPOINTS:
 			DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data, 1, data.length-1));
@@ -245,6 +256,7 @@ public class UtilsThread{
 				e.printStackTrace();
 			}
 			driverManager.getWaypointDriver().setNewWaypoints(points);
+			sendMessage("PHONE - Recieved new waypoints");
 			break;
 		}
 	}
@@ -353,6 +365,10 @@ public class UtilsThread{
 								bytesReceived = 0;
 							}
 						}
+						/**
+						 * TODO
+						 * rewrite with first bytes being size of current information, allowing lots of wayponits and huge messages
+						 */
 					}
 				}catch(IOException e){
 					lostConnection();

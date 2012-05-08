@@ -5,6 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 
+import constants.Conts;
+
 import android.ioio.car.listeners.MyCompassListener;
 import android.ioio.car.listeners.MyLocationListener;
 import android.location.Location;
@@ -19,6 +21,9 @@ public class WaypointDriver implements Driver{
 	private Thread drivingThread;
 	private DriverManager driverManager;
 	private long lastMessageTime;
+	private float maxSpeed = 64;
+	private boolean setBaud = false;
+	private byte[] input = new byte[12];
 
 	public WaypointDriver(DriverManager driverManager){
 		this.driverManager = driverManager;
@@ -90,6 +95,9 @@ public class WaypointDriver implements Driver{
 	@Override
 	public void stop() {
 		running = false;
+		input[Conts.Controller.Channel.LEFT_CHANNEL] = 0;
+		input[Conts.Controller.Channel.RIGHT_CHANNEL] = 0;
+		driverManager.getThreadManager().getIOIOThread().override(input);
 	}
 
 	@Override
@@ -111,7 +119,7 @@ public class WaypointDriver implements Driver{
 				Log.e("waypoint","done");
 				running=false;
 			}
-			
+
 			while(running){
 				if(currentLocation.getLatitude() == -200){
 					try {
@@ -135,31 +143,72 @@ public class WaypointDriver implements Driver{
 				}else{
 					//are not at next location. Compare desired heading against actual
 					desiredHeading = currentLocation.bearingTo(nextLocation);
-//					if(desiredHeading < 0){
-//						desiredHeading = 360-desiredHeading;
-//					}
-					
+					//					if(desiredHeading < 0){
+					//						desiredHeading = 360-desiredHeading;
+					//					}
+
 					float newHeading=0;
 					if(currentHeading > 180){
-						newHeading = -180+(currentHeading-180);
+						//newHeading = -180+(currentHeading-180);
+						newHeading = currentHeading-360;
 					}else{
 						newHeading = currentHeading;
 					}
+
+					float difference = newHeading-desiredHeading;
 					
-					float difference = desiredHeading-newHeading;
-					
+					if(difference < -180){
+						difference = 360-Math.abs(difference);
+					}
+
 					if((System.currentTimeMillis() - lastMessageTime) > 500){
-						lastMessageTime = System.currentTimeMillis();
-						if(!driverManager.getThreadManager().getUtilitiesThread().sendMessage(("heading to: "+desiredHeading+", current: "+currentHeading+", modified to: "+newHeading+" correcting by: "+difference))){
-							if(!driverManager.getThreadManager().getUtilitiesThread().sendMessage("message lost")){
-								Log.e("Waypoint driver","could not send");
+//						lastMessageTime = System.currentTimeMillis();
+//						driverManager.getThreadManager().getUtilitiesThread().sendMessage("sending command: "+getInputAsString(input));
+//						if(!driverManager.getThreadManager().getUtilitiesThread().sendMessage(("heading to: "+desiredHeading+", current: "+currentHeading+", modified to: "+newHeading+" correcting by: "+difference))){
+//							if(!driverManager.getThreadManager().getUtilitiesThread().sendMessage("message lost")){
+//								Log.e("Waypoint driver","could not send");
+//							}
+//						}
+					}
+
+					/*
+					 * negative is right, positive is left
+					 * the closer to +- 180, the less it needs to be
+					 */
+					if(setBaud){
+						input[10] = (byte)maxSpeed;
+						input[11] = (byte)maxSpeed;
+						if(Math.abs(difference) > 120){
+							if(difference > 0){
+								input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)(maxSpeed * -0.7);
+								input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)(maxSpeed * 0.7);
+							}else{
+								input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)(maxSpeed * 0.7);
+								input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)(maxSpeed * -0.7);
 							}
 						}
+						else if(difference > 0){
+							//go left, slow down left wheel
+							input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)((maxSpeed / 180f)*(180-difference));
+						}else if(difference < 0){
+							//go right, slow right
+							difference = Math.abs(difference);
+							input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)((maxSpeed / 180f)*(180-difference));
+						}
+					}else{
+						input[Conts.Controller.Buttons.BUTTON_B] = 1;
+						setBaud = true;
+						driverManager.getThreadManager().getIOIOThread().override(input);
+						//driverManager.getThreadManager().getUtilitiesThread().sendMessage("Sent baud.");
+						input[Conts.Controller.Buttons.BUTTON_B] = 0;
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
 					}
-					
-					/*
-					 * negative is left, positive is right
-					 */
+					//driverManager.getThreadManager().getUtilitiesThread().sendMessage("sending command: "+getInputAsString(input));
+					driverManager.getThreadManager().getIOIOThread().override(input);
 				}
 				Thread.yield();
 			}
@@ -171,5 +220,12 @@ public class WaypointDriver implements Driver{
 			return true;
 		}
 		return false;
+	}
+	private String getInputAsString(byte[] input){
+		StringBuilder sb = new StringBuilder();
+		for(byte b:input){
+			sb.append(b);sb.append(",");
+		}
+		return sb.toString();
 	}
 }

@@ -1,8 +1,9 @@
-package ui;
+package ui.map;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.ByteArrayOutputStream;
@@ -19,6 +20,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
+import com.mapquest.LatLng;
+import com.mapquest.LatLngCollection;
+
 import constants.Conts;
 
 import codeanticode.glgraphics.GLConstants;
@@ -32,6 +36,8 @@ import de.fhpotsdam.unfolding.providers.OpenStreetMap;
 import de.fhpotsdam.unfolding.utils.GeoUtils;
 import de.fhpotsdam.unfolding.utils.MapUtils;
 import processing.core.PApplet;
+import ui.ContextMenu;
+import ui.Window;
 
 public class MapApplet extends PApplet{
 
@@ -49,6 +55,7 @@ public class MapApplet extends PApplet{
 	private Window window;
 	private MapWindow mapWindow;
 	private Location highlightedLocation1, highlightedLocation2;
+	private boolean isMPressed = false;
 	
 	private ContextMenu contextMenu;
 
@@ -138,7 +145,16 @@ public class MapApplet extends PApplet{
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		if(e.getButton() == MouseEvent.BUTTON1){
-			handleLeftClick(e.getX(), e.getY());
+			if(isMPressed){
+				LatLngCollection collection = new DisplayFrameNoServer().doMapQuest();
+				for(int i = 0; i < collection.getSize(); i++){
+					LatLng latLng = collection.getAt(i);
+					Location L = new Location((float)latLng.getLatitude(), (float)latLng.getLongitude());
+					points.add(L);
+				}
+			}else{
+				handleLeftClick(e.getX(), e.getY());
+			}
 		}else if(e.getButton() == MouseEvent.BUTTON3){
 			if(!handleRightClick(e.getX(), e.getY())){
 				mapWindow.showMenu(e.getX(), e.getY());
@@ -178,6 +194,23 @@ public class MapApplet extends PApplet{
 		pressedOnDot = false;
 		super.mouseReleased(e);
 	}
+	
+	@Override
+	public void keyPressed(KeyEvent e) {
+		if(e.getKeyChar() == 'm'){
+			isMPressed = true;
+		}
+		super.keyPressed(e);
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		if(e.getKeyChar()=='m'){
+			isMPressed = false;
+		}
+		super.keyReleased(e);
+	}
+	
 
 	private void handleLeftClick(int x, int y){
 		if(highlightedLocation1 != null){
@@ -231,6 +264,7 @@ public class MapApplet extends PApplet{
 
 
 	}
+
 	public boolean handleRightClick(int x, int y){
 		boolean returnVal = false;
 		for(int i = 0; i <points.size(); i++){

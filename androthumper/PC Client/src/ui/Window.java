@@ -17,6 +17,7 @@ import threads.GPSThread;
 import threads.MovementThread;
 import threads.Utils;
 import threads.SensorThread;
+import ui.map.MapWindow;
 
 /**
  * This GUI was created with Netbeans. This frame provides control feedback from buttons and joysticks,
