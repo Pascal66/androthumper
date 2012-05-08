@@ -343,6 +343,7 @@ public class UtilsThread{
 
 	/**Runnable for the {@link #listeningThread}*/
 	private Runnable listenRunnable = new Runnable() {
+		int sizeOfData = -1;
 		@Override
 		public void run() {
 			while(running && stillConnected){
@@ -358,11 +359,25 @@ public class UtilsThread{
 							//bab.append(data, bytesReceived, result);
 							bab.write(data, 0, result);
 							bytesReceived+=result;
-							if(bytesReceived == Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE){
+							if(bytesReceived > 4 && sizeOfData == -1){
+								byte[] data1 = bab.toByteArray();
+								byte[] size = new byte[4];
+								System.arraycopy(data1, 0, size, 0, 4);
+								ByteArrayInputStream bais = new ByteArrayInputStream(size);
+								DataInputStream dis = new DataInputStream(bais);
+								sizeOfData = dis.readInt();
+								bab.reset();
+								bab.write(data, 4, data1.length-4);
+								bytesReceived-=4;
+							}else{
+								bab.write(data, 0, result);
+							}
+							if(bytesReceived == sizeOfData){
 								processData(bab.toByteArray());
 								//bab.clear();
 								bab.reset();
 								bytesReceived = 0;
+								sizeOfData = -1;
 							}
 						}
 						/**

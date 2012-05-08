@@ -1,7 +1,9 @@
 package threads;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -80,10 +82,16 @@ public class Utils{
 	 * @return True if the data was added to the queue to send, else false.
 	 */
 	public boolean sendData(byte[] data){
-		if(data.length != Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE){
-			return false;
+		ByteArrayOutputStream baos = new ByteArrayOutputStream(data.length+4);
+		DataOutputStream dos = new DataOutputStream(baos);
+		try {
+			dos.writeInt(data.length);
+			dos.write(data);
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-		sendingQueue.add(data);
+		
+		sendingQueue.add(baos.toByteArray());
 		return true;
 	}
 

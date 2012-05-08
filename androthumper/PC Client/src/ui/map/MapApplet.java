@@ -17,6 +17,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 
@@ -56,7 +57,9 @@ public class MapApplet extends PApplet{
 	private MapWindow mapWindow;
 	private Location highlightedLocation1, highlightedLocation2;
 	private boolean isMPressed = false;
-	
+	private final int MAX_DISTANCE = 500;
+	private final int MAX_HEADING_DIFFERENCE = 20;
+
 	private ContextMenu contextMenu;
 
 	public MapApplet(MapWindow mapWindow, Window window, float lat, float lng, Vector<float[]> points){
@@ -147,10 +150,15 @@ public class MapApplet extends PApplet{
 		if(e.getButton() == MouseEvent.BUTTON1){
 			if(isMPressed){
 				LatLngCollection collection = new DisplayFrameNoServer().doMapQuest();
-				for(int i = 0; i < collection.getSize(); i++){
-					LatLng latLng = collection.getAt(i);
-					Location L = new Location((float)latLng.getLatitude(), (float)latLng.getLongitude());
-					points.add(L);
+				//				for(int i = 0; i < collection.getSize(); i++){
+				//					LatLng latLng = collection.getAt(i);
+				//					Location L = new Location((float)latLng.getLatitude(), (float)latLng.getLongitude());
+				//					points.add(L);
+				//				}
+				Location[] locations = condensePoints(collection);
+				System.out.println("Condensed "+collection.getSize()+" into "+locations.length);
+				for(Location l:locations){
+					points.add(l);
 				}
 			}else{
 				handleLeftClick(e.getX(), e.getY());
@@ -194,7 +202,7 @@ public class MapApplet extends PApplet{
 		pressedOnDot = false;
 		super.mouseReleased(e);
 	}
-	
+
 	@Override
 	public void keyPressed(KeyEvent e) {
 		if(e.getKeyChar() == 'm'){
@@ -210,7 +218,7 @@ public class MapApplet extends PApplet{
 		}
 		super.keyReleased(e);
 	}
-	
+
 
 	private void handleLeftClick(int x, int y){
 		if(highlightedLocation1 != null){
@@ -370,14 +378,14 @@ public class MapApplet extends PApplet{
 	public void printt(String print){
 		System.out.println(print);
 	}
-	
+
 	public void clearPoints(){
 		points.clear();
 	}
 	public byte[] getPointsAsByteArray(){
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		DataOutputStream dos = new DataOutputStream(baos);
-		
+
 		try {
 			dos.writeInt(points.size());
 			for(Location l:points){
@@ -391,8 +399,72 @@ public class MapApplet extends PApplet{
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		
+
 		return baos.toByteArray();
+	}
+
+	private Location[] condensePoints(LatLngCollection collection){
+		List<Location> locations = new LinkedList<Location>();
+		Location pointOne = null,pointTwo = null,pointThree=null;
+		LatLng current = null;
+		/*
+		 * For each trio of points, compare the bearing of 1->2 to 2->3.
+		 * If they are within X (1-5 degs), remove the middle point 
+		 * if the distance from 1->2 is less than max distance
+		 */
+		if(collection.getSize() > 2){
+			for(int i = 0; i < collection.getSize(); i++){
+				current = collection.getAt(i);
+				if(pointOne == null){
+					pointOne = new Location((float)current.getLatitude(),(float)current.getLongitude());
+				}else if(pointTwo==null){
+					pointTwo = new Location((float)current.getLatitude(),(float)current.getLongitude());
+					if(GeoUtils.getDistance(pointOne, pointTwo) == 0){
+						pointTwo = null;
+					}
+				}else if(pointThree==null){
+					pointThree = new Location((float)current.getLatitude(),(float)current.getLongitude());
+					if(GeoUtils.getDistance(pointTwo, pointThree) == 0){
+						pointThree = null;
+					}
+				}else{
+					//Have got all the points... current is now 4th point
+					double headingOneTwo = GeoUtils.getDegree(GeoUtils.getAngleBetween(pointOne, pointTwo));
+					double headingTwoThree = GeoUtils.getDegree(GeoUtils.getAngleBetween(pointTwo, pointThree));
+
+					if(Math.abs(headingOneTwo-headingTwoThree) > MAX_HEADING_DIFFERENCE){
+						if(!locations.contains(pointOne)){
+							locations.add(pointOne);
+						}
+						if(!locations.contains(pointTwo)){
+							locations.add(pointTwo);
+						}		
+
+						pointOne = pointTwo;
+						pointTwo = pointThree;
+						pointThree = new Location((float)current.getLatitude(),(float)current.getLongitude());
+					}else{
+						if(!locations.contains(pointOne)){
+							locations.add(pointOne);
+						}
+						if(!locations.contains(pointThree)){
+							locations.add(pointThree);
+						}
+
+						pointOne = pointThree;
+						pointTwo = new Location((float)current.getLatitude(),(float)current.getLongitude());
+						pointThree = null;
+					}
+				}
+			}
+		}else{
+			for(int i = 0; i < collection.getSize(); i++){
+				LatLng L = collection.getAt(i);
+				locations.add(new Location((float)L.getLatitude(), (float)L.getLongitude()));
+			}
+		}
+
+		return locations.toArray(new Location[locations.size()]);
 	}
 
 	@Override
