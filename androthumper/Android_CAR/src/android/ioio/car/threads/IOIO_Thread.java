@@ -446,6 +446,22 @@ public class IOIO_Thread implements Runnable {
 //				stop = true;
 //			}
 //			
+			if(input[Conts.Controller.Channel.LEFT_CHANNEL] == 0){
+				
+			}else if(input[Conts.Controller.Channel.LEFT_CHANNEL] > 0){
+				/*
+				 * TODO
+				 * make byte buffer, set places for left speed, and get mode with conts.chann.left_mode
+				 */
+			}
+			
+			if(input[Conts.Controller.Channel.RIGHT_CHANNEL] == 0){
+				
+			}else if(input[Conts.Controller.Channel.RIGHT_CHANNEL] > 0){
+				
+			}
+			
+			
 //			if(setBaud){
 //				try {
 //					//RIGHT STICK

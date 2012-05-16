@@ -25,8 +25,8 @@ public class Conts {
 		public static final int SENSORS_PACKET_SIZE = 12;
 		/**Size of utilities packet. First byte is code, rest is up to you. */
 		public static final int UTILS_CONTROL_PACKET_SIZE = 2000;
-		/**Size of the movement packet. 10 bytes for buttons,  1 byte for steering, 1 byte for gas/brake. One spare.*/
-		public static final int MOVE_PACKET_SIZE = 12;
+		/**Size of the movement packet. 10 bytes for buttons,  1 byte for left speed, 1 byte for right speed, one byte for left mode, one byte for right mode.*/
+		public static final int MOVE_PACKET_SIZE = 14;
 		/** CODE + 8 bytes for double lat, 8 bytes for double lng, 8 bytes for double altitude, 4 bytes for float speed, 4 bytes for float accuracy*/
 		public static final int GPS_POSITION_PACKET_SIZE = 33;
 		/** CODE + 6 sats * (4bytes for SNR, 1 byte for used in prn, 1byte for used (1 used, 0 not used)*/
@@ -119,6 +119,10 @@ public class Conts {
 			public static final int LEFT_CHANNEL = 10;
 			/**Used for controlling the right side of thumper. */
 			public static final int RIGHT_CHANNEL = 11;
+			/**Used for setting mode of left side of thumper. */
+			public static final int LEFT_MODE = 12;
+			/**Used for setting mode of right side of thumper. */
+			public static final int RIGHT_MODE = 13;
 		}
 	}
 }

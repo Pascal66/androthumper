@@ -67,7 +67,7 @@ public class MovementThread implements Runnable{
 				}
 			}
 
-			int speed = (int)((127/(float)100) * (triggers[1] * 100));
+			int speed = (int)((255/(float)100) * (triggers[1] * 100));
 			
 			int rSpeed,lSpeed;
 			lSpeed = rSpeed = speed;
@@ -77,10 +77,10 @@ public class MovementThread implements Runnable{
 				if(speed < 5){
 					if(buttons[Conts.Controller.Buttons.BUTTON_Y]){
 						//lock left
-						rSpeed = (int)(127/(float)100 * (LStick[0]*100));
+						rSpeed = (int)(255/(float)100 * (LStick[0]*100));
 					}else{
-						lSpeed = (int)(127/(float)100 * (-LStick[0]*100));
-						rSpeed = (int)(127/(float)100 * (LStick[0]*100));
+						lSpeed = (int)(255/(float)100 * (-LStick[0]*100));
+						rSpeed = (int)(255/(float)100 * (LStick[0]*100));
 					}
 				}else{
 					lSpeed = lSpeed - (int) (lSpeed * LStick[0]);
@@ -90,10 +90,10 @@ public class MovementThread implements Runnable{
 				if(speed < 5){
 					if(buttons[Conts.Controller.Buttons.BUTTON_Y]){
 						//Lock right
-						lSpeed = (int)(127/(float)100 * (-LStick[0]*100));
+						lSpeed = (int)(255/(float)100 * (-LStick[0]*100));
 					}else{
-						lSpeed = (int)(127/(float)100 * (-LStick[0]*100));
-						rSpeed = (int)(127/(float)100 * (LStick[0]*100));
+						lSpeed = (int)(255/(float)100 * (-LStick[0]*100));
+						rSpeed = (int)(255/(float)100 * (LStick[0]*100));
 					}
 				}else{
 					rSpeed = rSpeed - (int) (rSpeed * -LStick[0]);
@@ -101,11 +101,13 @@ public class MovementThread implements Runnable{
 			}
 			
 			if(RStick[1] > 0.5){
-				input[10] = (byte)-rSpeed;
-				input[11] = (byte)-lSpeed;
+				//Set modes to reverse (0)
+				input[Conts.Controller.Channel.LEFT_MODE] = 0;
+				input[Conts.Controller.Channel.RIGHT_MODE] = 0;
 			}else{
-				input[10] = (byte)rSpeed;
-				input[11] = (byte)lSpeed;
+				//set mode to forward (2)
+				input[Conts.Controller.Channel.LEFT_MODE] = 2;
+				input[Conts.Controller.Channel.RIGHT_MODE] = 2;
 			}
 			
 			packet.setData(input);
