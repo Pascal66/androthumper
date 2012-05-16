@@ -101,15 +101,6 @@ public class ThreadManager{
 		ioio_thread_ = new IOIO_Thread(this);	
     }
     
-    /**
-     * Provide a way to inject data into the IOIO thread. I.E, by zeemotes.
-     * @param data - The controller data. Must be formatted according to what the IOIO wants!
-     */
-    public void overrideMovement(byte[] data){
-    	//TODO replace by zeemote driver
-    	ioio_thread_.override(data);
-    }
-    
     public Cam_thread getCamThread(){
     	return this.the_cam;
     }

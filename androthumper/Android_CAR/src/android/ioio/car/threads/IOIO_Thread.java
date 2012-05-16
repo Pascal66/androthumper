@@ -108,6 +108,8 @@ public class IOIO_Thread implements Runnable {
 	private List<MyCompassListener> compassListeners;
 	private float heading;
 	
+	int lSpeed,lMode,rSpeed,rMode;
+	
 	IOIO_Thread(ThreadManager manager){
 		this.manager = manager;
 		compassListeners = new LinkedList<MyCompassListener>();
@@ -160,7 +162,11 @@ public class IOIO_Thread implements Runnable {
 	 * @param input - The byte[] of data to receive.
 	 */
 	public void override(byte[] input){
-		this.input = input;
+		if(input.length != Conts.PacketSize.MOVE_PACKET_SIZE){
+			Log.e("IOIO","Wrong input, got: "+byteArrayToString(input));
+		}else{
+			this.input = input;
+		}
 	}
 	
 	public void addCompassListener(MyCompassListener listener){
@@ -187,8 +193,12 @@ public class IOIO_Thread implements Runnable {
 		private DigitalInput errorInput;
 		private DigitalOutput reset;
 		private double batteryLevel = 0;
+		boolean driverChanged = false;
 		
 		private byte[] READ_BATTERY = new byte[]{'B','L'};
+		private byte[] MOTOR_BUFF = new byte[6];
+		
+		
 		private int ACCEL_VAL = 35;
 		private int COMPASS_READ_TIME = 200;
 		
@@ -243,6 +253,9 @@ public class IOIO_Thread implements Runnable {
 				compassIs = compass.getInputStream();
 				os = driver.getOutputStream();
 				is = driver.getInputStream();
+
+				MOTOR_BUFF[0]='H';MOTOR_BUFF[1]='B';
+				MOTOR_BUFF[2] = 0;MOTOR_BUFF[3] = 0;MOTOR_BUFF[4] = 0; MOTOR_BUFF[5] = 0;
 			} catch (ConnectionLostException e) {
 				e.printStackTrace();
 			}
@@ -446,21 +459,39 @@ public class IOIO_Thread implements Runnable {
 //				stop = true;
 //			}
 //			
-			if(input[Conts.Controller.Channel.LEFT_CHANNEL] == 0){
-				
-			}else if(input[Conts.Controller.Channel.LEFT_CHANNEL] > 0){
+
 				/*
 				 * TODO
 				 * make byte buffer, set places for left speed, and get mode with conts.chann.left_mode
 				 */
+			if(MOTOR_BUFF[3] != input[Conts.Controller.Channel.LEFT_CHANNEL]){
+				MOTOR_BUFF[3] = input[Conts.Controller.Channel.LEFT_CHANNEL];
+				driverChanged = true;
+			}
+			if(MOTOR_BUFF[2] != input[Conts.Controller.Channel.LEFT_MODE]){
+				MOTOR_BUFF[2] = input[Conts.Controller.Channel.LEFT_MODE];
+				driverChanged = true;
+			}
+			if(MOTOR_BUFF[5] != input[Conts.Controller.Channel.RIGHT_CHANNEL]){
+				MOTOR_BUFF[5] = input[Conts.Controller.Channel.RIGHT_CHANNEL];
+				driverChanged = true;
+			}
+			if(MOTOR_BUFF[4] != input[Conts.Controller.Channel.RIGHT_MODE]){
+				MOTOR_BUFF[4] = input[Conts.Controller.Channel.RIGHT_MODE];
+				driverChanged = true;
 			}
 			
-			if(input[Conts.Controller.Channel.RIGHT_CHANNEL] == 0){
+			if(driverChanged){
+				driverChanged = false;
+				Log.e("IOIO","Write motor buff: "+byteArrayToString(MOTOR_BUFF));
 				
-			}else if(input[Conts.Controller.Channel.RIGHT_CHANNEL] > 0){
-				
-			}
-			
+				try {
+					os.write(MOTOR_BUFF);
+					os.flush();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}	
 			
 //			if(setBaud){
 //				try {

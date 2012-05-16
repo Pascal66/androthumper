@@ -97,7 +97,8 @@ public class WaypointDriver implements Driver{
 		running = false;
 		input[Conts.Controller.Channel.LEFT_CHANNEL] = 0;
 		input[Conts.Controller.Channel.RIGHT_CHANNEL] = 0;
-		driverManager.getThreadManager().getIOIOThread().override(input);
+		//TODO FIX FOR NEW DRIVER
+		//driverManager.getThreadManager().getIOIOThread().override(input);
 	}
 
 	@Override
@@ -175,40 +176,41 @@ public class WaypointDriver implements Driver{
 					 * negative is right, positive is left
 					 * the closer to +- 180, the less it needs to be
 					 */
-					if(setBaud){
-						input[10] = (byte)maxSpeed;
-						input[11] = (byte)maxSpeed;
-						if(Math.abs(difference) > 120){
-							if(difference > 0){
-								input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)(maxSpeed * -0.7);
-								input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)(maxSpeed * 0.7);
-							}else{
-								input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)(maxSpeed * 0.7);
-								input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)(maxSpeed * -0.7);
-							}
-						}
-						else if(difference > 0){
-							//go left, slow down left wheel
-							input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)((maxSpeed / 180f)*(180-difference));
-						}else if(difference < 0){
-							//go right, slow right
-							difference = Math.abs(difference);
-							input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)((maxSpeed / 180f)*(180-difference));
-						}
-					}else{
-						input[Conts.Controller.Buttons.BUTTON_B] = 1;
-						setBaud = true;
-						driverManager.getThreadManager().getIOIOThread().override(input);
-						//driverManager.getThreadManager().getUtilitiesThread().sendMessage("Sent baud.");
-						input[Conts.Controller.Buttons.BUTTON_B] = 0;
-						try {
-							Thread.sleep(100);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-					//driverManager.getThreadManager().getUtilitiesThread().sendMessage("sending command: "+getInputAsString(input));
-					driverManager.getThreadManager().getIOIOThread().override(input);
+					//TODO FIX FOR NEW DRIVER
+//					if(setBaud){
+//						input[10] = (byte)maxSpeed;
+//						input[11] = (byte)maxSpeed;
+//						if(Math.abs(difference) > 120){
+//							if(difference > 0){
+//								input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)(maxSpeed * -0.7);
+//								input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)(maxSpeed * 0.7);
+//							}else{
+//								input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)(maxSpeed * 0.7);
+//								input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)(maxSpeed * -0.7);
+//							}
+//						}
+//						else if(difference > 0){
+//							//go left, slow down left wheel
+//							input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)((maxSpeed / 180f)*(180-difference));
+//						}else if(difference < 0){
+//							//go right, slow right
+//							difference = Math.abs(difference);
+//							input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)((maxSpeed / 180f)*(180-difference));
+//						}
+//					}else{
+//						input[Conts.Controller.Buttons.BUTTON_B] = 1;
+//						setBaud = true;
+//						driverManager.getThreadManager().getIOIOThread().override(input);
+//						//driverManager.getThreadManager().getUtilitiesThread().sendMessage("Sent baud.");
+//						input[Conts.Controller.Buttons.BUTTON_B] = 0;
+//						try {
+//							Thread.sleep(100);
+//						} catch (InterruptedException e) {
+//							e.printStackTrace();
+//						}
+//					}
+//					//driverManager.getThreadManager().getUtilitiesThread().sendMessage("sending command: "+getInputAsString(input));
+//					driverManager.getThreadManager().getIOIOThread().override(input);
 				}
 				Thread.yield();
 			}

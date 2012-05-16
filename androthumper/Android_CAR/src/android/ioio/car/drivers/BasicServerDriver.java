@@ -8,6 +8,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 import android.ioio.car.threads.ThreadManager;
+import android.util.Log;
 import android.widget.Toast;
 
 import constants.Conts;
@@ -50,7 +51,12 @@ public class BasicServerDriver implements Driver{
 				try {
 					socket.receive(packet);
 					//The data is already formatted for the IOIO by the server, so just forward it straight to the ioio
-					driverManager.getThreadManager().getIOIOThread().override(packet.getData());
+					byte[] data = packet.getData();
+					if(data.length != Conts.PacketSize.MOVE_PACKET_SIZE){
+						Log.e("BASIC_SERVER_DRIVER","Wrong length!");
+					}else{
+						driverManager.getThreadManager().getIOIOThread().override(data);
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

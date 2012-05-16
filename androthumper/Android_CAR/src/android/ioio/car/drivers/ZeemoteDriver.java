@@ -96,7 +96,8 @@ public class ZeemoteDriver implements Driver{
 	
 	private boolean commit(){
 		if(running){
-			driverManager.getThreadManager().getIOIOThread().override(input);
+			//TODO FIX FOR NEW DRIVER
+			//driverManager.getThreadManager().getIOIOThread().override(input);
 			return true;
 		}else{
 			return false;

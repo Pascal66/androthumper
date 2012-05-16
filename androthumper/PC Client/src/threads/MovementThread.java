@@ -83,7 +83,7 @@ public class MovementThread implements Runnable{
 						rSpeed = (int)(255/(float)100 * (LStick[0]*100));
 					}
 				}else{
-					lSpeed = lSpeed - (int) (lSpeed * LStick[0]);
+					rSpeed = rSpeed - (int) (rSpeed * LStick[0]);
 				}
 			}else if(LStick[0] < -0.1){
 				//LEFT (slow right)
@@ -96,20 +96,30 @@ public class MovementThread implements Runnable{
 						rSpeed = (int)(255/(float)100 * (LStick[0]*100));
 					}
 				}else{
-					rSpeed = rSpeed - (int) (rSpeed * -LStick[0]);
+					lSpeed = lSpeed - (int) (lSpeed * -LStick[0]);
 				}
 			}
 			
-			if(RStick[1] > 0.5){
+			input[Conts.Controller.Channel.LEFT_CHANNEL]=(byte) lSpeed;
+			input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte) rSpeed;
+			
+			if(RStick[1] > 0.5 && speed > 5){
 				//Set modes to reverse (0)
 				input[Conts.Controller.Channel.LEFT_MODE] = 0;
 				input[Conts.Controller.Channel.RIGHT_MODE] = 0;
+			}else if(RStick[1] > 0.5 && speed < 5){
+				input[Conts.Controller.Channel.LEFT_MODE] = 0;
+				input[Conts.Controller.Channel.RIGHT_MODE] = 0;
+				
+				input[Conts.Controller.Channel.LEFT_CHANNEL] = 1;
+				input[Conts.Controller.Channel.RIGHT_CHANNEL] = 1;
 			}else{
 				//set mode to forward (2)
 				input[Conts.Controller.Channel.LEFT_MODE] = 2;
 				input[Conts.Controller.Channel.RIGHT_MODE] = 2;
 			}
-			
+			System.out.println("speed: "+speed);
+			System.out.println("Sending: "+byteArrayToString(input));
 			packet.setData(input);
 			try {
 				socket.send(packet);
@@ -134,5 +144,14 @@ public class MovementThread implements Runnable{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public String byteArrayToString(byte[] data){
+		StringBuilder bul = new StringBuilder();
+		
+		for(byte b:data){
+			bul.append(b);bul.append(",");
+		}
+		return bul.toString();
 	}
 }
