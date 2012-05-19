@@ -58,6 +58,7 @@ public class MovementThread implements Runnable{
 	 * @param triggers - The float values of the left and right trigger (unreliable.avoid)
 	 */
 	public void doMove(boolean[] buttons, float[] LStick, float[] RStick, float[] triggers){
+		int rMode = -1,lMode=-1;
 		if(!waitingForPing){
 			for(int i = 0; i < buttons.length; i++){
 				if(buttons[i]){
@@ -77,10 +78,13 @@ public class MovementThread implements Runnable{
 				if(speed < 5){
 					if(buttons[Conts.Controller.Buttons.BUTTON_Y]){
 						//lock left
-						rSpeed = (int)(255/(float)100 * (LStick[0]*100));
+						lSpeed = (int)(255/(float)100 * (LStick[0]*100));
+						rMode = 1;
 					}else{
-						lSpeed = (int)(255/(float)100 * (-LStick[0]*100));
+						lSpeed = (int)(255/(float)100 * (LStick[0]*100));
 						rSpeed = (int)(255/(float)100 * (LStick[0]*100));
+						lMode=2;
+						rMode=0;
 					}
 				}else{
 					rSpeed = rSpeed - (int) (rSpeed * LStick[0]);
@@ -90,10 +94,13 @@ public class MovementThread implements Runnable{
 				if(speed < 5){
 					if(buttons[Conts.Controller.Buttons.BUTTON_Y]){
 						//Lock right
-						lSpeed = (int)(255/(float)100 * (-LStick[0]*100));
+						rSpeed = (int)(255/(float)100 * (-LStick[0]*100));
+						lMode = 1;
 					}else{
 						lSpeed = (int)(255/(float)100 * (-LStick[0]*100));
-						rSpeed = (int)(255/(float)100 * (LStick[0]*100));
+						rSpeed = (int)(255/(float)100 * (-LStick[0]*100));
+						rMode=2;
+						lMode=0;
 					}
 				}else{
 					lSpeed = lSpeed - (int) (lSpeed * -LStick[0]);
@@ -115,10 +122,20 @@ public class MovementThread implements Runnable{
 				input[Conts.Controller.Channel.RIGHT_CHANNEL] = 1;
 			}else{
 				//set mode to forward (2)
-				input[Conts.Controller.Channel.LEFT_MODE] = 2;
-				input[Conts.Controller.Channel.RIGHT_MODE] = 2;
+				if(lMode == -1){
+					input[Conts.Controller.Channel.LEFT_MODE] = 2;
+				}else{
+					input[Conts.Controller.Channel.LEFT_MODE] = (byte) lMode;
+				}
+
+				if(rMode == -1){
+					input[Conts.Controller.Channel.RIGHT_MODE] = 2;
+				}else{
+					input[Conts.Controller.Channel.RIGHT_MODE] = (byte) rMode;
+				}
+
 			}
-			System.out.println("speed: "+speed);
+
 			System.out.println("Sending: "+byteArrayToString(input));
 			packet.setData(input);
 			try {
