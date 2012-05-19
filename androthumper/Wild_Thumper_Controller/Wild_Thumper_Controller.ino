@@ -1,4 +1,6 @@
+#include <Wire.h>
 #include <Servo.h>
+
 #include "IOpins.h"
 #include "Constants.h"
 
@@ -11,6 +13,9 @@ unsigned int RightAmps;
 unsigned long chargeTimer;
 unsigned long leftOverloadTime;
 unsigned long rightOverloadTime;
+boolean shoveLeft = true;
+boolean shoveRight = true;
+byte requestCode;
 int highVolts;
 int startVolts;
 int Leftspeed=0;
@@ -24,6 +29,8 @@ byte Leftmodechange=0;                                        // Left input must
 byte Rightmodechange=0;                                       // Right input must be 1500 before brake or reverse can occur
 int LeftPWM;                                                  // PWM value for left  motor speed / brake
 int RightPWM;                                                 // PWM value for right motor speed / brake
+int LastReadLeftPWM;
+int LastReadRightPWM;
 int data;
 int servo[7];
 
@@ -89,46 +96,78 @@ void loop(){
     analogWrite (LmotorA,0);                                  // turn off motors
     analogWrite (LmotorB,0);                                  // turn off motors
     leftOverloadTime=millis();                                // record time of overload
-    Serial.println("left overload");
+    //Serial.println("left overload");
   }
 
   if (RightAmps>RIGHT_MAX_AMPS){                              // is motor current draw exceeding safe limit 
     analogWrite (RmotorA,0);                                  // turn off motors
     analogWrite (RmotorB,0);                                  // turn off motors
     rightOverloadTime=millis();                                   // record time of overload
-    Serial.println("right overload");
+    //Serial.println("right overload");
   }
 
-  if ((Volts<LOW_BATT_VOLTAGE) && (Charged==BATT_CHARGED)){                         // check condition of the battery
-                                                                // change battery status from charged to flat
-
-    //---------------------------------------------------------- FLAT BATTERY speed controller shuts down until battery is recharged ----
-    //---------------------------------------------------------- This is a safety feature to prevent malfunction at low voltages!! ------
-
-    Charged=BATT_LOW;                                                // battery is flat
-    highVolts=Volts;                                          // record the voltage
-    startVolts=Volts;
-    chargeTimer=millis();                                     // record the time
-
-    digitalWrite (Charger,CHARGER_ENABLE);                                 // enable current regulator to charge battery
+//  TODO
+//  drawing a lot of current causes voltage to drop, making driver think battery is dead.
+//  modify to either lower the low battery voltage, or make it so that if the current draw
+//  is big, ignore this. Or, write a serial command to enter charging mode, ignoring any 
+//  low voltage untill the IOIO drops off the phone, notifying the server.
+  
+  if ((Volts<LOW_BATT_VOLTAGE) && (Charged==BATT_CHARGED) && (BATT_AUTO_CHECK==1)){                         // check condition of the battery
+    enableCharge();
   }
 
   //------------------------------------------------------------ CHARGE BATTERY -------------------------------------------------------
 
-  if ((Charged==BATT_LOW) && (Volts-startVolts>67)){                 // if battery is flat and charger has been connected (voltage has increased by at least 1V)
-    if (Volts>highVolts){                                     // has battery voltage increased?
-      highVolts=Volts;                                        // record the highest voltage. Used to detect peak charging.
-      chargeTimer=millis();                                   // when voltage increases record the time
+  if (Charged==BATT_LOW){                 // if battery is flat?
+    checkForInput();
+    checkCharge();
+  }else{//----------------------------------------------------------- GOOD BATTERY speed controller opperates normally ----------------------
+    checkForInput();
+
+    // --------------------------------------------------------- Code to drive dual "H" bridges --------------------------------------
+    doMove();
+  }
+}
+
+void checkCharge(){
+  if(!(Volts > LOW_BATT_VOLTAGE)){
+    if(Volts-startVolts > 33){            //has charger been connected (voltage increaased by at least 0.5V)?
+      if (Volts>highVolts){               // has battery voltage increased?
+        highVolts=Volts;                  // record the highest voltage. Used to detect peak charging.
+        chargeTimer=millis();             // when voltage increases record the time
+      }
     }
 
     if (Volts>PEAK_BATT_VOLTAGE){                                          // battery voltage must be higher than this before peak charging can occur.
       if ((highVolts-Volts)>5 || (millis()-chargeTimer)>chargetimeout){     // has voltage begun to drop or levelled out?
+        Serial.println("charged");
         Charged=BATT_CHARGED;                                            // battery voltage has peaked
         digitalWrite (Charger,CHARGER_DISABLE);                             // turn off current regulator
       }
-    } 
-  }else{//----------------------------------------------------------- GOOD BATTERY speed controller opperates normally ----------------------
-    switch(Cmode){
+    }
+  }else{
+    Serial.println("charged");
+    Charged=BATT_CHARGED;                                            // battery voltage has peaked
+    digitalWrite (Charger,CHARGER_DISABLE);                             // turn off current regulator
+  } 
+}
+
+void enableCharge(){
+  Serial.println("enable charge");
+    // change battery status from charged to flat
+
+    //---------------------------------------------------------- FLAT BATTERY speed controller shuts down until battery is recharged ----
+    //---------------------------------------------------------- This is a safety feature to prevent malfunction at low voltages!! ------
+    Charged=BATT_LOW;                                         // battery is flat
+    highVolts=Volts;                                          // record the voltage
+    startVolts=Volts;
+    chargeTimer=millis();                                     // record the time
+
+    digitalWrite (Charger,CHARGER_ENABLE);                    // enable current regulator to charge battery
+}
+
+void checkForInput(){
+   switch(Cmode){
     case 0:                                                   // RC mode via D0 and D1
       RCmode();
       break;
@@ -139,13 +178,19 @@ void loop(){
       I2Cmode();
       break;
     }
+}
 
-    // --------------------------------------------------------- Code to drive dual "H" bridges --------------------------------------
-
-    if (Charged==BATT_CHARGED)                                           // Only power motors if battery voltage is good
+void doMove(){
+      if (Charged==BATT_CHARGED)                                           // Only power motors if battery voltage is good
     {
       if ((millis()-leftOverloadTime)>OVERLOAD_PAUSE_TIME_MILLIS )             
       {
+        if(shoveLeft){
+          LeftPWM = 80;
+          shoveLeft = false;
+        }else{
+          LeftPWM = LastReadLeftPWM;
+        }
         switch (Leftmode)                                     // if left motor has not overloaded recently
         {
         case 2:                                               // left motor forward
@@ -166,6 +211,12 @@ void loop(){
       }
       if ((millis()-rightOverloadTime)>OVERLOAD_PAUSE_TIME_MILLIS )
       {
+        if(shoveRight){
+          RightPWM = 80;
+          shoveRight = false;
+        }else{
+          RightPWM = LastReadRightPWM;
+        }
         switch (Rightmode)                                    // if right motor has not overloaded recently
         {
         case 2:                                               // right motor forward
@@ -192,7 +243,6 @@ void loop(){
       analogWrite (RmotorA,0);                                // turn off motors
       analogWrite (RmotorB,0);                                // turn off motors
     }
-  }
 }
 
 void RCmode()
@@ -256,8 +306,13 @@ void SCmode(){
     int A=Serial.read();
     int B=Serial.read();
     int command=A*256+B; 
-    switch (command)
-    {
+    switch (command){
+      case 18243:                                            //GC - enable charge mode.
+        enableCharge();
+        break;
+      case 21315:                                            //SC - stop charge
+        checkCharge();
+        break;
       case 16972:                                            //BL - write battery level to output serial
         //Serial.println(highByte(Volts));
         //Serial.println(lowByte(Volts));
@@ -295,15 +350,26 @@ void SCmode(){
        case 18498:                                            // HB - mode and PWM data for left and right motors
          Serialread();
          Leftmode=data;
-         Serial.print("left mode: ");
-         Serial.println(data);
+         //Serial.print("left mode: ");
+         //Serial.println(data);
          Serialread();
+         
+         if(data < 80 && LeftPWM < 10 && data > LeftPWM){
+          shoveLeft = true; 
+         }
+
          LeftPWM=data;
+         LastReadLeftPWM = data;
          Serialread();
          Rightmode=data;
          Serialread();
+         
+         if(data < 80 && RightPWM < 10 && data > RightPWM){
+            shoveRight = true; 
+         }
          RightPWM=data;
-         Serial.println("done reading data");
+         LastReadRightPWM = data;
+         //Serial.println("done reading data");
          break;
          
        default:                                                // invalid command
@@ -317,17 +383,40 @@ void Serialread() {//---------------------------------------------------------- 
     data=Serial.read();
   } while (data<0);
 }
-    
 
-
-
-
-
-
-void I2Cmode()
-{//----------------------------------------------------------- Your code goes here ------------------------------------------------------------
-
+void I2Cmode(){//----------------------------------------------------------- Your code goes here ------------------------------------------------------------
+  Wire.onReceive(HandleOnRecieve);
+  Wire.onRequest(HandleOnRequest);
+  Wire.begin(1);
 }
+
+//This is when the master has addressed this controller as a slave, and has send 'bytes' amount of data. First byte is always a command code.
+void HandleOnRecieve(int bytes){
+  requestCode = Wire.read();
+  
+  if(requestCode == Hello){
+    //Master says hello.. but thats it.
+  }else{
+    for(int i = 1; i < bytes; i++){
+      byte sentByte = Wire.read();
+    }
+  }
+}
+
+//This is when the master has requested some data from this controller which is set up as a slave.
+void HandleOnRequest(){
+  switch(requestCode){
+   case Hello:
+     //Master has said hello... lets say something back
+       byte b[4];
+       b[0] = 1;
+       b[1] = 2;
+       b[2] = 3;
+       b[3] = 4;
+       Wire.write(b,4);
+    break; 
+  }
+}  
 
 
 

@@ -13,6 +13,9 @@
 #define RCdeadband          35     // inputs do not have to be perfectly centered to stop motors
 #define scale               12     // scale factor for RC signal to PWM
 
+//=======================================I2C COMMS=============================================
+#define Hello              1
+
 
 
 //=================================== BATTERY CHARGER SETTINGS ======================================================================
@@ -24,8 +27,7 @@
 #define CHARGER_DISABLE             1
 #define BATT_CHARGED                1
 #define BATT_LOW                    0
-
-
+#define BATT_AUTO_CHECK             0
 
 //=================================== H BRIDGE SETTINGS =============================================================================
 
