@@ -123,6 +123,23 @@ public class Conts {
 			public static final int LEFT_MODE = 12;
 			/**Used for setting mode of right side of thumper. */
 			public static final int RIGHT_MODE = 13;
+			
+			public static final int MODE_FORWARDS = 2;
+			public static final int MODE_REVERSE = 0;
+			public static final int MODE_BRAKE = 1;
+		}
+	}
+	
+	public static class Tools{
+		/**Generate a String from the byte[].*/
+		public static String getStringFromByteArray(byte[] data){
+			StringBuilder builder = new StringBuilder();
+			
+			for(byte b:data){
+				builder.append(b);
+				builder.append(",");
+			}
+			return builder.toString();
 		}
 	}
 }

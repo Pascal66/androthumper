@@ -10,12 +10,14 @@ public class ZeemoteDriver implements Driver{
 	
 	private DriverManager driverManager;
 	private boolean running = false;
-	private byte[] input = new byte[12];
+	private byte[] input = new byte[Conts.PacketSize.MOVE_PACKET_SIZE];
+	private boolean debug = false;
 	
 	public ZeemoteDriver(DriverManager driverManager){
 		this.driverManager = driverManager;
 	}
 
+	/**Tell the driver one of the buttons on the right controller has been released. */
 	public boolean rightButtonUp(ButtonEvent event){
 		switch(event.getButtonGameAction()){
 		case 5:
@@ -33,6 +35,7 @@ public class ZeemoteDriver implements Driver{
 		}
 		return commit();
 	}
+	/**Tell the driver one of the buttons on the right controller has been pressed. */
 	public boolean rightButtonDown(ButtonEvent event){
 		switch(event.getButtonGameAction()){
 		case 5:
@@ -50,6 +53,7 @@ public class ZeemoteDriver implements Driver{
 		}
 		return commit();
 	}
+	/**Tell the driver one of the buttons on the left controller has been released. */
 	public boolean leftButtonUp(ButtonEvent event){
 		switch(event.getButtonGameAction()){
 		case 5:
@@ -67,6 +71,7 @@ public class ZeemoteDriver implements Driver{
 		}
 		return commit();
 	}
+	/**Tell the driver one of the buttons on the left controller has been pressed. */
 	public boolean leftButtonDown(ButtonEvent event){
 		switch(event.getButtonGameAction()){
 		case 5:
@@ -85,19 +90,35 @@ public class ZeemoteDriver implements Driver{
 		return commit();
 	}
 	
+	/**Tell the driver that the left joystick has moved. */
 	public boolean leftJoystick(int x, int y){
-		input[10] = (byte)-y;
+		if(y < 0){
+			input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)-y;
+			input[Conts.Controller.Channel.LEFT_MODE] = Conts.Controller.Channel.MODE_FORWARDS;
+		}else{
+			input[Conts.Controller.Channel.LEFT_MODE] = Conts.Controller.Channel.MODE_REVERSE;
+		}
 		return commit();
 	}
+	/**Tell the driver the right joystick has moved. */
 	public boolean rightJoystick(int x, int y){
-		input[11] = (byte)-y;
+		if(y < 0){
+			input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)-y;
+			input[Conts.Controller.Channel.RIGHT_MODE] = Conts.Controller.Channel.MODE_FORWARDS;
+		}else{
+			input[Conts.Controller.Channel.RIGHT_CHANNEL] = (byte)y;
+			input[Conts.Controller.Channel.RIGHT_MODE] = Conts.Controller.Channel.MODE_REVERSE;
+		}
 		return commit();
 	}
 	
+	/**Commit the input data to the IOIO thread via the driver manager. */
 	private boolean commit(){
 		if(running){
-			//TODO FIX FOR NEW DRIVER
-			//driverManager.getThreadManager().getIOIOThread().override(input);
+			if(debug){
+				Log.e("Zeemote driver","Sending input: "+Conts.Tools.getStringFromByteArray(input));
+			}
+			driverManager.getThreadManager().getIOIOThread().override(input);
 			return true;
 		}else{
 			return false;

@@ -11,7 +11,7 @@ import android.ioio.car.drivers.ZeemoteDriver;
 
 /**
  * An instance of the application, but with Zeemote libs. Provides access to controllers,
- * and does the actual listening for events.
+ * and does the actual listening for events, forwarding them onto the ZeemoteDriver.
  * @author Alex Flynn
  *
  */
@@ -36,18 +36,13 @@ public class MyZSpyApplication extends Application implements IButtonListener,IJ
 		super.onCreate();
 	}
 
+	/**Add a listener to receive controller events. */
 	public void addMyListener(ZeemoteDriver driver){
 		this.driver = driver;
 		this.driver.start();
 	}
 
-	public Controller getLeftController(){
-		return leftController;
-	}
-	public Controller getRightController(){
-		return rightController;
-	}
-
+	/**Get the controller specified by cont. 0=left, 1=right*/
 	public Controller getController(int cont){
 		if(cont == 0){
 			return leftController;
@@ -82,9 +77,9 @@ public class MyZSpyApplication extends Application implements IButtonListener,IJ
 	public void joystickMoved(JoystickEvent arg0) {
 		if(driver != null){
 			if(arg0.getController() == leftController){
-				driver.leftJoystick(arg0.getScaledX(-127, 127),arg0.getScaledY(-127, 127));
+				driver.leftJoystick(arg0.getScaledX(-255, 255),arg0.getScaledY(-255, 255));
 			}else{
-				driver.rightJoystick(arg0.getScaledX(-127, 127),arg0.getScaledY(-127, 127));
+				driver.rightJoystick(arg0.getScaledX(-255, 255),arg0.getScaledY(-255, 255));
 			}
 		}
 	}
