@@ -15,6 +15,8 @@ unsigned long leftOverloadTime;
 unsigned long rightOverloadTime;
 boolean shoveLeft = true;
 boolean shoveRight = true;
+int leftShoveCount = 0;
+int rightShoveCount = 0;
 byte requestCode;
 int highVolts;
 int startVolts;
@@ -185,12 +187,14 @@ void doMove(){
     {
       if ((millis()-leftOverloadTime)>OVERLOAD_PAUSE_TIME_MILLIS )             
       {
-        if(shoveLeft){
-          LeftPWM = 80;
-          shoveLeft = false;
-        }else{
-          LeftPWM = LastReadLeftPWM;
-        }
+//        if(shoveLeft && leftShoveCount < 5){
+//          LeftPWM = 80;
+//          leftShoveCount++;
+//        }else{
+//          leftShoveCount=0;
+//          shoveLeft = false;
+//          LeftPWM = LastReadLeftPWM;
+//        }
         switch (Leftmode)                                     // if left motor has not overloaded recently
         {
         case 2:                                               // left motor forward
@@ -211,12 +215,14 @@ void doMove(){
       }
       if ((millis()-rightOverloadTime)>OVERLOAD_PAUSE_TIME_MILLIS )
       {
-        if(shoveRight){
-          RightPWM = 80;
-          shoveRight = false;
-        }else{
-          RightPWM = LastReadRightPWM;
-        }
+//        if(shoveRight && rightShoveCount < 5){
+//          RightPWM = 80;
+//          rightShoveCount++;
+//        }else{
+//          rightShoveCount=0;
+//          shoveRight = false;
+//          RightPWM = LastReadRightPWM;
+//        }
         switch (Rightmode)                                    // if right motor has not overloaded recently
         {
         case 2:                                               // right motor forward

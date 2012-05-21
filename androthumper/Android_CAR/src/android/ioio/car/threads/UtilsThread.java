@@ -258,6 +258,8 @@ public class UtilsThread{
 			driverManager.getWaypointDriver().setNewWaypoints(points);
 			sendMessage("PHONE - Recieved new waypoints");
 			break;
+		default:
+			Log.e("UTILS THREAD","Not sure what that was... "+Conts.Tools.getStringFromByteArray(data));
 		}
 	}
 

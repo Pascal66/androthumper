@@ -845,6 +845,10 @@ public class Window extends javax.swing.JFrame {
 
 		latLabel.setText("LAT: "+lat);
 		lngLabel.setText("LNG: "+lng);
+		
+		if(mapWindow != null){
+			mapWindow.jumpToLocation(this.lat, this.lng);
+		}
 	}
 
 	/**

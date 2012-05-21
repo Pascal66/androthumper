@@ -89,15 +89,17 @@ public class GPSThread implements LocationListener, Listener{
 				currentLocation = location;
 				changed = true;
 			}else{
-				//If it is more accurate..
-				if(location.hasAccuracy() && (location.getAccuracy() <= currentLocation.getAccuracy())){
-					currentLocation = location;
-					changed = true;
-				//Or we hit timeout of a 30 seconds
-				}else if(location.getTime() > (currentLocation.getTime() + 30000)){
-					currentLocation = location;
-					changed = true;
-				}
+//				//If it is more accurate..
+//				if(location.hasAccuracy() && (location.getAccuracy() <= currentLocation.getAccuracy())){
+//					currentLocation = location;
+//					changed = true;
+//				//Or we hit timeout of a 30 seconds
+//				}else if(location.getTime() > (currentLocation.getTime() + 30000)){
+//					currentLocation = location;
+//					changed = true;
+//				}
+				currentLocation = location;
+				changed = true;
 			}
 
 			if(changed){

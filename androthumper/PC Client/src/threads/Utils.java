@@ -140,6 +140,8 @@ public class Utils{
 				e.printStackTrace();
 			}
 			break;
+		default:
+			System.out.println("PC: Not sure what that was..."+Conts.Tools.getStringFromByteArray(data));
 		}
 	}
 	
@@ -153,6 +155,7 @@ public class Utils{
 				try {
 					byte[] data = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
 					socketInput.read(data);
+					
 					processData(data);
 				} catch (IOException e) {
 					stillConnected = false;
