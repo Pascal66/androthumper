@@ -43,7 +43,7 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*******************************************************************************************************/
+ *******************************************************************************************************/
 package android.ioio.car.threads;
 
 import ioio.lib.api.DigitalInput;
@@ -71,6 +71,8 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.apache.http.util.ByteArrayBuffer;
 
 import android.ioio.car.listeners.MyCompassListener;
 import android.util.Log;
@@ -107,9 +109,9 @@ public class IOIO_Thread implements Runnable {
 	private ThreadManager manager;
 	private List<MyCompassListener> compassListeners;
 	private float heading;
-	
+
 	int lSpeed,lMode,rSpeed,rMode;
-	
+
 	IOIO_Thread(ThreadManager manager){
 		this.manager = manager;
 		compassListeners = new LinkedList<MyCompassListener>();
@@ -118,18 +120,18 @@ public class IOIO_Thread implements Runnable {
 		//listenerThread.start();
 		ioioThread.start();
 
-//		try {
-//			socket = new DatagramSocket();
-//			DatagramPacket pingPacket = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(manager.getIpAddress()), Conts.Ports.MOVE_INCOMMING_PORT);
-//			socket.send(pingPacket);
-//			Log.e(TAG,"Sent ping.");
-//		} catch (SocketException e) {
-//			e.printStackTrace();
-//		} catch (UnknownHostException e) {
-//			e.printStackTrace();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
+		//		try {
+		//			socket = new DatagramSocket();
+		//			DatagramPacket pingPacket = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(manager.getIpAddress()), Conts.Ports.MOVE_INCOMMING_PORT);
+		//			socket.send(pingPacket);
+		//			Log.e(TAG,"Sent ping.");
+		//		} catch (SocketException e) {
+		//			e.printStackTrace();
+		//		} catch (UnknownHostException e) {
+		//			e.printStackTrace();
+		//		} catch (IOException e) {
+		//			e.printStackTrace();
+		//		}
 	}
 
 	public void abort(){
@@ -168,7 +170,7 @@ public class IOIO_Thread implements Runnable {
 			this.input = input;
 		}
 	}
-	
+
 	public void addCompassListener(MyCompassListener listener){
 		compassListeners.add(listener);
 	}
@@ -193,15 +195,17 @@ public class IOIO_Thread implements Runnable {
 		private DigitalInput errorInput;
 		private DigitalOutput reset;
 		private double batteryLevel = 0;
-		boolean driverChanged = false;
-		
+		private boolean driverChanged = false;
+		private boolean isCharging = false;
+
 		private byte[] READ_BATTERY = new byte[]{'B','L'};
+		private byte[] START_CHARGE = new byte[]{'G','C'};
+
 		private byte[] MOTOR_BUFF = new byte[6];
-		
-		
+
 		private int ACCEL_VAL = 35;
 		private int COMPASS_READ_TIME = 200;
-		
+
 		private boolean connected = false,stopRequest = false;
 
 		@Override
@@ -275,7 +279,7 @@ public class IOIO_Thread implements Runnable {
 				testLED.write(true);
 			}else{
 				testLED.write(false);
-				
+
 				try {
 					os.write(READ_BATTERY);
 					if(is.available()>0){
@@ -283,312 +287,372 @@ public class IOIO_Thread implements Runnable {
 						int lowByte = is.read();
 						int thumperBattery = highByte << 8 | lowByte;
 						double realBatt = thumperBattery/68.3f;
-						if(batteryLevel != realBatt){
-							batteryLevel = realBatt;
-							manager.getUtilitiesThread().sendMessage("Battery level: "+batteryLevel);
-						}
+						batteryLevel = realBatt;
+						manager.getUtilitiesThread().sendMessage("Battery level: "+batteryLevel);
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
-			
+
 			getCompassData();
-			
+
+			//Check for any messages from WTC
+			try {
+				if(is.available()>0){
+					//					ByteArrayBuffer buf = new ByteArrayBuffer(is.available());
+					//					while(is.available()>0){
+					//						buf.append(is.read());
+					//					}
+					byte[] message = new byte[2];
+					is.read(message);
+					switch(message[0]){
+					case -1:
+						switch(message[1]){
+						case -1:
+							//-1,-1
+							//Uh oh, WTC says the battery is getting low.
+							sendMessage(START_CHARGE);
+							isCharging = true;
+							break;
+						}
+						break;
+					}
+				}
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+
 			//RESET
-//			if(input[Conts.Controller.Buttons.BUTTON_X] == 1){
-//				reset.write(false);
-//				setBaud = false;
-//				resetted = true;
-//			}else{
-//				reset.write(true);
-//				if(resetted){
-//					try {
-//						resetted = false;
-//						Thread.sleep(200);
-//					} catch (InterruptedException e1) {
-//						e1.printStackTrace();
-//					}
-//				}
-//			}
+			//			if(input[Conts.Controller.Buttons.BUTTON_X] == 1){
+			//				reset.write(false);
+			//				setBaud = false;
+			//				resetted = true;
+			//			}else{
+			//				reset.write(true);
+			//				if(resetted){
+			//					try {
+			//						resetted = false;
+			//						Thread.sleep(200);
+			//					} catch (InterruptedException e1) {
+			//						e1.printStackTrace();
+			//					}
+			//				}
+			//			}
 
-//			if(input[Conts.Controller.Buttons.BUTTON_LS] == 1){
-//				//read values back from my motor driver
-//				try {
-//					os.write(new byte[]{(byte) 0x83,2});
-//					Thread.sleep(100);
-//					is = driver.getInputStream();
-//					int onError = is.read();
-//					os.write(new byte[]{(byte) 0x83,3});
-//					Thread.sleep(100);
-//					is = driver.getInputStream();
-//					int timeout = is.read();
-//					os.write(new byte[]{(byte) 0x83, 4});
-//					Thread.sleep(100);
-//					int m0Accel = is.read();
-//					os.write(new byte[]{(byte) 0x83, 5});
-//					Thread.sleep(100);
-//					int m1Accel = is.read();
-//					os.write(new byte[]{(byte) 0x83, 6});
-//					Thread.sleep(100);
-//					int m0BrakeTime = is.read();
-//					os.write(new byte[]{(byte) 0x83, 7});
-//					Thread.sleep(100);
-//					int m1BrakeTime = is.read();
-//					os.write(new byte[]{(byte) 0x83, 8});
-//					Thread.sleep(100);
-//					int m0CurrentLimit = is.read();
-//					os.write(new byte[]{(byte) 0x83, 9});
-//					Thread.sleep(100);
-//					int m1CurrentLimit = is.read();
-//					os.write(new byte[]{(byte) 0x83, 10});
-//					Thread.sleep(100);
-//					int m0CurrentLimitResponse = is.read();
-//					os.write(new byte[]{(byte) 0x83, 11});
-//					Thread.sleep(100);
-//					int m1CurrentLimitResponse = is.read();
-//					os.write(new byte[]{(byte) 0x83, 1});
-//					Thread.sleep(100);
-//					int pwm = is.read();
-//					
-//					Log.e("INFO: Timeout: ",""+timeout);
-//					Log.e("INFO: PWM: ",""+pwm);
-//					Log.e("INFO: Shut down on error: ",""+onError);
-//					Log.e("INFO: M0 acceleration: ",""+m0Accel);
-//					Log.e("INFO: M1 acceleration: ",""+m1Accel);
-//					Log.e("INFO: M0 brake time: ",""+m0BrakeTime);
-//					Log.e("INFO: M1 brake time: ",""+m1BrakeTime);
-//					Log.e("INFO: M0 current limit: ",""+m0CurrentLimit);
-//					Log.e("INFO: M1 current limit: ",""+m1CurrentLimit);
-//					Log.e("INFO: M0 current limit response: ",""+m0CurrentLimitResponse);
-//					Log.e("INFO: M1 current limit response: ",""+m1CurrentLimitResponse);
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				} catch (InterruptedException e) {
-//					e.printStackTrace();
-//				}
-//			}
-			
-//			if(input[Conts.Controller.Buttons.BUTTON_RS] == 1){
-//				try {
-//					//Write parameters to my motor driver
-//					os.write(new byte[]{(byte) 0x84, 4, 0, 0x55, 0x2A});
-//					Thread.sleep(100);
-//					int m0AccelResult = is.read();
-//					os.write(new byte[]{(byte) 0x84, 5, 0, 0x55, 0x2A});
-//					Thread.sleep(100);
-//					int m1AccelResult = is.read();
-//					os.write(new byte[]{(byte) 0x84, 6, 50, 0x55, 0x2A});
-//					Thread.sleep(100);
-//					int m0BrakeResult = is.read();
-//					os.write(new byte[]{(byte) 0x84, 7, 50, 0x55, 0x2A});
-//					Thread.sleep(100);
-//					int m1BrakeResult = is.read();
-//					os.write(new byte[]{(byte) 0x84, 8, 44, 0x55, 0x2A});
-//					Thread.sleep(100);
-//					int m0CurrentLimitResult = is.read();
-//					os.write(new byte[]{(byte) 0x84, 9, 44, 0x55, 0x2A});
-//					Thread.sleep(100);
-//					int m1CurrentLimitResult = is.read();
-//					
-//					Log.e("INFO: M0 accel result: ",""+m0AccelResult);
-//					Log.e("INFO: M1 accel result: ",""+m1AccelResult);
-//					Log.e("INFO: M0 brake result: ",""+m0BrakeResult);
-//					Log.e("INFO: M1 brake result: ",""+m1BrakeResult);
-//					Log.e("INFO: M0 current limit: ",""+m0CurrentLimitResult);
-//					Log.e("INFO: M1 current limit: ",""+m1CurrentLimitResult);
-//				} catch (InterruptedException e) {
-//					e.printStackTrace();
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-//			}
-			
+			//			if(input[Conts.Controller.Buttons.BUTTON_LS] == 1){
+			//				//read values back from my motor driver
+			//				try {
+			//					os.write(new byte[]{(byte) 0x83,2});
+			//					Thread.sleep(100);
+			//					is = driver.getInputStream();
+			//					int onError = is.read();
+			//					os.write(new byte[]{(byte) 0x83,3});
+			//					Thread.sleep(100);
+			//					is = driver.getInputStream();
+			//					int timeout = is.read();
+			//					os.write(new byte[]{(byte) 0x83, 4});
+			//					Thread.sleep(100);
+			//					int m0Accel = is.read();
+			//					os.write(new byte[]{(byte) 0x83, 5});
+			//					Thread.sleep(100);
+			//					int m1Accel = is.read();
+			//					os.write(new byte[]{(byte) 0x83, 6});
+			//					Thread.sleep(100);
+			//					int m0BrakeTime = is.read();
+			//					os.write(new byte[]{(byte) 0x83, 7});
+			//					Thread.sleep(100);
+			//					int m1BrakeTime = is.read();
+			//					os.write(new byte[]{(byte) 0x83, 8});
+			//					Thread.sleep(100);
+			//					int m0CurrentLimit = is.read();
+			//					os.write(new byte[]{(byte) 0x83, 9});
+			//					Thread.sleep(100);
+			//					int m1CurrentLimit = is.read();
+			//					os.write(new byte[]{(byte) 0x83, 10});
+			//					Thread.sleep(100);
+			//					int m0CurrentLimitResponse = is.read();
+			//					os.write(new byte[]{(byte) 0x83, 11});
+			//					Thread.sleep(100);
+			//					int m1CurrentLimitResponse = is.read();
+			//					os.write(new byte[]{(byte) 0x83, 1});
+			//					Thread.sleep(100);
+			//					int pwm = is.read();
+			//					
+			//					Log.e("INFO: Timeout: ",""+timeout);
+			//					Log.e("INFO: PWM: ",""+pwm);
+			//					Log.e("INFO: Shut down on error: ",""+onError);
+			//					Log.e("INFO: M0 acceleration: ",""+m0Accel);
+			//					Log.e("INFO: M1 acceleration: ",""+m1Accel);
+			//					Log.e("INFO: M0 brake time: ",""+m0BrakeTime);
+			//					Log.e("INFO: M1 brake time: ",""+m1BrakeTime);
+			//					Log.e("INFO: M0 current limit: ",""+m0CurrentLimit);
+			//					Log.e("INFO: M1 current limit: ",""+m1CurrentLimit);
+			//					Log.e("INFO: M0 current limit response: ",""+m0CurrentLimitResponse);
+			//					Log.e("INFO: M1 current limit response: ",""+m1CurrentLimitResponse);
+			//				} catch (IOException e) {
+			//					e.printStackTrace();
+			//				} catch (InterruptedException e) {
+			//					e.printStackTrace();
+			//				}
+			//			}
 
-//			try {
-//				//The driver's error pin is high. Read the error, and send it to the server.
-//				if(errorInput.read()){
-//					os.write(0x82);
-//					ByteArrayOutputStream baos = new ByteArrayOutputStream(Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE);
-//					DataOutputStream dos = new DataOutputStream(baos);
-//					dos.write(Conts.UTILS_MESSAGE_TYPE_DRIVER_ERROR);
-//					Byte out;
-//					//if(is.available() >= 1){
-//						out = (byte) is.read();
-//						dos.write(out);
-//						Log.e("IOIO ERROR: ","BYTE: "+out);
-//						dos.close();
-//						manager.getUtilitiesThread().sendData(Arrays.copyOf(baos.toByteArray(), Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE));
-//					//}
-//					reset.write(false);
-//					resetted = true;
-//					setBaud = false;
-//					m1HasMoved = false;
-//					m0hasMoved = false;
-//					Thread.sleep(1000);
-//				}
-//			} catch (InterruptedException e1) {
-//				e1.printStackTrace();
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
+			//			if(input[Conts.Controller.Buttons.BUTTON_RS] == 1){
+			//				try {
+			//					//Write parameters to my motor driver
+			//					os.write(new byte[]{(byte) 0x84, 4, 0, 0x55, 0x2A});
+			//					Thread.sleep(100);
+			//					int m0AccelResult = is.read();
+			//					os.write(new byte[]{(byte) 0x84, 5, 0, 0x55, 0x2A});
+			//					Thread.sleep(100);
+			//					int m1AccelResult = is.read();
+			//					os.write(new byte[]{(byte) 0x84, 6, 50, 0x55, 0x2A});
+			//					Thread.sleep(100);
+			//					int m0BrakeResult = is.read();
+			//					os.write(new byte[]{(byte) 0x84, 7, 50, 0x55, 0x2A});
+			//					Thread.sleep(100);
+			//					int m1BrakeResult = is.read();
+			//					os.write(new byte[]{(byte) 0x84, 8, 44, 0x55, 0x2A});
+			//					Thread.sleep(100);
+			//					int m0CurrentLimitResult = is.read();
+			//					os.write(new byte[]{(byte) 0x84, 9, 44, 0x55, 0x2A});
+			//					Thread.sleep(100);
+			//					int m1CurrentLimitResult = is.read();
+			//					
+			//					Log.e("INFO: M0 accel result: ",""+m0AccelResult);
+			//					Log.e("INFO: M1 accel result: ",""+m1AccelResult);
+			//					Log.e("INFO: M0 brake result: ",""+m0BrakeResult);
+			//					Log.e("INFO: M1 brake result: ",""+m1BrakeResult);
+			//					Log.e("INFO: M0 current limit: ",""+m0CurrentLimitResult);
+			//					Log.e("INFO: M1 current limit: ",""+m1CurrentLimitResult);
+			//				} catch (InterruptedException e) {
+			//					e.printStackTrace();
+			//				} catch (IOException e) {
+			//					e.printStackTrace();
+			//				}
+			//			}
+
+
+			//			try {
+			//				//The driver's error pin is high. Read the error, and send it to the server.
+			//				if(errorInput.read()){
+			//					os.write(0x82);
+			//					ByteArrayOutputStream baos = new ByteArrayOutputStream(Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE);
+			//					DataOutputStream dos = new DataOutputStream(baos);
+			//					dos.write(Conts.UTILS_MESSAGE_TYPE_DRIVER_ERROR);
+			//					Byte out;
+			//					//if(is.available() >= 1){
+			//						out = (byte) is.read();
+			//						dos.write(out);
+			//						Log.e("IOIO ERROR: ","BYTE: "+out);
+			//						dos.close();
+			//						manager.getUtilitiesThread().sendData(Arrays.copyOf(baos.toByteArray(), Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE));
+			//					//}
+			//					reset.write(false);
+			//					resetted = true;
+			//					setBaud = false;
+			//					m1HasMoved = false;
+			//					m0hasMoved = false;
+			//					Thread.sleep(1000);
+			//				}
+			//			} catch (InterruptedException e1) {
+			//				e1.printStackTrace();
+			//			} catch (IOException e) {
+			//				e.printStackTrace();
+			//			}
 
 			//Set the baud rate. Must be done before any motor commands.
-//			if(input[Conts.Controller.Buttons.BUTTON_B] == 1){
-//				if(!setBaud){
-//					try {
-//						Log.e("IOIO","sent baud");
-//						os.write(0xAA);
-//					} catch (IOException e) {
-//						e.printStackTrace();
-//					}
-//					setBaud = true;
-//				}
-//			}
-//			
-//			if(input[Conts.Controller.Buttons.BUTTON_LB] == 1){
-//				m1HasMoved = false;
-//			}
-//			if(input[Conts.Controller.Buttons.BUTTON_RB] == 1){
-//				m0hasMoved = false;
-//			}
-//
-//			if(stopRequest){
-//				input[Conts.Controller.Channel.LEFT_CHANNEL] = 0;
-//				input[Conts.Controller.Channel.RIGHT_CHANNEL] = 0;
-//				stop = true;
-//			}
-//			
+			//			if(input[Conts.Controller.Buttons.BUTTON_B] == 1){
+			//				if(!setBaud){
+			//					try {
+			//						Log.e("IOIO","sent baud");
+			//						os.write(0xAA);
+			//					} catch (IOException e) {
+			//						e.printStackTrace();
+			//					}
+			//					setBaud = true;
+			//				}
+			//			}
+			//			
+			//			if(input[Conts.Controller.Buttons.BUTTON_LB] == 1){
+			//				m1HasMoved = false;
+			//			}
+			//			if(input[Conts.Controller.Buttons.BUTTON_RB] == 1){
+			//				m0hasMoved = false;
+			//			}
+			//
+			//			if(stopRequest){
+			//				input[Conts.Controller.Channel.LEFT_CHANNEL] = 0;
+			//				input[Conts.Controller.Channel.RIGHT_CHANNEL] = 0;
+			//				stop = true;
+			//			}
+			//			
 
-				/*
-				 * TODO
-				 * make byte buffer, set places for left speed, and get mode with conts.chann.left_mode
-				 */
-			if(MOTOR_BUFF[3] != input[Conts.Controller.Channel.LEFT_CHANNEL]){
-				MOTOR_BUFF[3] = input[Conts.Controller.Channel.LEFT_CHANNEL];
-				driverChanged = true;
-			}
-			if(MOTOR_BUFF[2] != input[Conts.Controller.Channel.LEFT_MODE]){
-				MOTOR_BUFF[2] = input[Conts.Controller.Channel.LEFT_MODE];
-				driverChanged = true;
-			}
-			if(MOTOR_BUFF[5] != input[Conts.Controller.Channel.RIGHT_CHANNEL]){
-				MOTOR_BUFF[5] = input[Conts.Controller.Channel.RIGHT_CHANNEL];
-				driverChanged = true;
-			}
-			if(MOTOR_BUFF[4] != input[Conts.Controller.Channel.RIGHT_MODE]){
-				MOTOR_BUFF[4] = input[Conts.Controller.Channel.RIGHT_MODE];
-				driverChanged = true;
-			}
-			
-			if(driverChanged){
-				driverChanged = false;
-				Log.e("IOIO","Write motor buff: "+byteArrayToString(MOTOR_BUFF));
-				
+			/*
+			 * TODO
+			 * make byte buffer, set places for left speed, and get mode with conts.chann.left_mode
+			 */
+			if(!isCharging){
+				if(MOTOR_BUFF[3] != input[Conts.Controller.Channel.LEFT_CHANNEL]){
+					MOTOR_BUFF[3] = input[Conts.Controller.Channel.LEFT_CHANNEL];
+					driverChanged = true;
+				}
+				if(MOTOR_BUFF[2] != input[Conts.Controller.Channel.LEFT_MODE]){
+					MOTOR_BUFF[2] = input[Conts.Controller.Channel.LEFT_MODE];
+					driverChanged = true;
+				}
+				if(MOTOR_BUFF[5] != input[Conts.Controller.Channel.RIGHT_CHANNEL]){
+					MOTOR_BUFF[5] = input[Conts.Controller.Channel.RIGHT_CHANNEL];
+					driverChanged = true;
+				}
+				if(MOTOR_BUFF[4] != input[Conts.Controller.Channel.RIGHT_MODE]){
+					MOTOR_BUFF[4] = input[Conts.Controller.Channel.RIGHT_MODE];
+					driverChanged = true;
+				}
+
+				if(driverChanged){
+					driverChanged = false;
+					Log.e("IOIO","Write motor buff: "+byteArrayToString(MOTOR_BUFF));
+
+					try {
+						os.write(MOTOR_BUFF);
+						os.flush();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}	
+			}else{
+				//We are charging. Check if we are still charging. If we are, sleep. Else, wake up
 				try {
-					os.write(MOTOR_BUFF);
-					os.flush();
+					os.write(READ_BATTERY);
+					Thread.sleep(10);
+					if(is.available()>0){
+						int highByte = is.read();
+						int lowByte = is.read();
+						int thumperBattery = highByte << 8 | lowByte;
+						double realBatt = thumperBattery/65f;
+						batteryLevel = realBatt;
+						manager.getUtilitiesThread().sendMessage("Battery level: "+batteryLevel);
+						
+						if(batteryLevel > 8){
+							//Done!
+							isCharging = false;
+						}else{
+							//Sleep for two minutes, then check again.
+							Thread.sleep(120000);
+						}
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
 				}
-			}	
-			
-//			if(setBaud){
-//				try {
-//					//RIGHT STICK
-//					if(input[11] < -1){
-//						//forward
-//						if(-input[11] < m0speed){
-//							m0speed = -input[11];
-//						}else if(-input[11] > m0speed){
-//							m0speed+=ACCEL_VAL;
-//						}
-//						if(m0speed > -input[11]){
-//							m0speed = -input[11];
-//						}
-//						os.write(new byte[]{(byte) 0x8E,(byte) m0speed});
-//						m0hasMoved = true;
-//					}else if(input[11] > 1){
-//						//backward
-//						if(input[11] < m0speed){
-//							m0speed = input[11];
-//						}else if(input[11] > m0speed){
-//							m0speed+=ACCEL_VAL;
-//						}
-//						if(m0speed > input[11]){
-//							m0speed = input[11];
-//						}
-//						os.write(new byte[]{(byte) 0x8C,(byte) m0speed});
-//						m0hasMoved = true;
-//					}else{
-//						if(m0hasMoved){
-//							os.write(new byte[]{(byte) 0x87,64});
-//						}else{
-//							os.write(new byte[]{(byte) 0x87, 0});
-//						}
-//					}
-//
-//					//LEFT STICK
-//					if(input[10] < -1){
-//						//forward
-//						if(-input[10] < m1speed){
-//							m1speed = -input[10];
-//						}else if(-input[10] > m1speed){
-//							m1speed+=ACCEL_VAL;
-//						}
-//						if(m1speed > -input[10]){
-//							m1speed = -input[10];
-//						}
-//						os.write(new byte[]{(byte) 0x88,(byte) m1speed});
-//						m1HasMoved = true;
-//					}else if(input[10] > 1){
-//						//backward
-//						if(input[10] < m1speed){
-//							m1speed = input[10];
-//						}else if(input[10] > m1speed){
-//							m1speed+=ACCEL_VAL;
-//						}
-//						if(m1speed > input[10]){
-//							m1speed = input[10];
-//						}
-//						os.write(new byte[]{(byte) 0x8A,(byte) m1speed});
-//						m1HasMoved = true;
-//					}else{
-//						if(m1HasMoved){
-//							os.write(new byte[]{(byte) 0x86,64});
-//						}else{
-//							os.write(new byte[]{(byte) 0x86, 0});
-//						}
-//					}
-//
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-//			}
+			}
+
+			//			if(setBaud){
+			//				try {
+			//					//RIGHT STICK
+			//					if(input[11] < -1){
+			//						//forward
+			//						if(-input[11] < m0speed){
+			//							m0speed = -input[11];
+			//						}else if(-input[11] > m0speed){
+			//							m0speed+=ACCEL_VAL;
+			//						}
+			//						if(m0speed > -input[11]){
+			//							m0speed = -input[11];
+			//						}
+			//						os.write(new byte[]{(byte) 0x8E,(byte) m0speed});
+			//						m0hasMoved = true;
+			//					}else if(input[11] > 1){
+			//						//backward
+			//						if(input[11] < m0speed){
+			//							m0speed = input[11];
+			//						}else if(input[11] > m0speed){
+			//							m0speed+=ACCEL_VAL;
+			//						}
+			//						if(m0speed > input[11]){
+			//							m0speed = input[11];
+			//						}
+			//						os.write(new byte[]{(byte) 0x8C,(byte) m0speed});
+			//						m0hasMoved = true;
+			//					}else{
+			//						if(m0hasMoved){
+			//							os.write(new byte[]{(byte) 0x87,64});
+			//						}else{
+			//							os.write(new byte[]{(byte) 0x87, 0});
+			//						}
+			//					}
+			//
+			//					//LEFT STICK
+			//					if(input[10] < -1){
+			//						//forward
+			//						if(-input[10] < m1speed){
+			//							m1speed = -input[10];
+			//						}else if(-input[10] > m1speed){
+			//							m1speed+=ACCEL_VAL;
+			//						}
+			//						if(m1speed > -input[10]){
+			//							m1speed = -input[10];
+			//						}
+			//						os.write(new byte[]{(byte) 0x88,(byte) m1speed});
+			//						m1HasMoved = true;
+			//					}else if(input[10] > 1){
+			//						//backward
+			//						if(input[10] < m1speed){
+			//							m1speed = input[10];
+			//						}else if(input[10] > m1speed){
+			//							m1speed+=ACCEL_VAL;
+			//						}
+			//						if(m1speed > input[10]){
+			//							m1speed = input[10];
+			//						}
+			//						os.write(new byte[]{(byte) 0x8A,(byte) m1speed});
+			//						m1HasMoved = true;
+			//					}else{
+			//						if(m1HasMoved){
+			//							os.write(new byte[]{(byte) 0x86,64});
+			//						}else{
+			//							os.write(new byte[]{(byte) 0x86, 0});
+			//						}
+			//					}
+			//
+			//				} catch (IOException e) {
+			//					e.printStackTrace();
+			//				}
+			//			}
 		}
-		
+
 		public void getCompassData(){
 			if((System.currentTimeMillis() - compassLastReadTime) > COMPASS_READ_TIME){
 				try{
-//					compassOs.write(0x11);
-//					int version = compassIs.read();
-					
+					//					compassOs.write(0x11);
+					//					int version = compassIs.read();
+
 					compassOs.write(0x12);
 					int realHeading = compassIs.read();
 					heading = (realHeading / 255f) * 360;
-					
-//					byte[] utilsData = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
-//					utilsData[0] = Conts.UtilsCodes.DataType.COMPASS_DATA;
-//					utilsData[1] = (byte) realHeading;
-//					manager.getUtilitiesThread().sendData(utilsData);
+
+					//					byte[] utilsData = new byte[Conts.PacketSize.UTILS_CONTROL_PACKET_SIZE];
+					//					utilsData[0] = Conts.UtilsCodes.DataType.COMPASS_DATA;
+					//					utilsData[1] = (byte) realHeading;
+					//					manager.getUtilitiesThread().sendData(utilsData);
 
 					compassLastReadTime = System.currentTimeMillis();
 					for(MyCompassListener listener:compassListeners){
 						listener.gotCompassHeading(heading);
 					}
 				}catch(IOException e){
-					
+
 				}
+			}
+		}
+
+		private void sendMessage(byte[] data){
+			try {
+				os.write(data);
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 
@@ -600,10 +664,10 @@ public class IOIO_Thread implements Runnable {
 			thread.start();
 		}
 	}
-	
+
 	public String byteArrayToString(byte[] data){
 		StringBuilder bul = new StringBuilder();
-		
+
 		for(byte b:data){
 			bul.append(b);bul.append(",");
 		}

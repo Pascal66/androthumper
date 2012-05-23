@@ -11,7 +11,7 @@ public class ZeemoteDriver implements Driver{
 	private DriverManager driverManager;
 	private boolean running = false;
 	private byte[] input = new byte[Conts.PacketSize.MOVE_PACKET_SIZE];
-	private boolean debug = false;
+	private boolean debug = true;
 	
 	public ZeemoteDriver(DriverManager driverManager){
 		this.driverManager = driverManager;
@@ -96,6 +96,7 @@ public class ZeemoteDriver implements Driver{
 			input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)-y;
 			input[Conts.Controller.Channel.LEFT_MODE] = Conts.Controller.Channel.MODE_FORWARDS;
 		}else{
+			input[Conts.Controller.Channel.LEFT_CHANNEL] = (byte)y;
 			input[Conts.Controller.Channel.LEFT_MODE] = Conts.Controller.Channel.MODE_REVERSE;
 		}
 		return commit();

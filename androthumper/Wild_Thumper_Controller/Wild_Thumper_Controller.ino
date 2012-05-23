@@ -36,6 +36,8 @@ int LastReadRightPWM;
 int data;
 int servo[7];
 
+byte BATT_LOW_MSG[2] = {-1,-1};
+
 //-------------------------------------------------------------- define servos ------------------------------------------------------
 
 
@@ -354,28 +356,39 @@ void SCmode(){
          break;
        
        case 18498:                                            // HB - mode and PWM data for left and right motors
-         Serialread();
-         Leftmode=data;
-         //Serial.print("left mode: ");
-         //Serial.println(data);
-         Serialread();
+       
+         if(Charged==BATT_LOW || Volts<LOW_BATT_VOLTAGE){
+           Serial.println("Battery is low!");
+           Serial.write(BATT_LOW_MSG,2);
+           Charged=BATT_LOW;
+           analogWrite (LmotorA,0);                                // turn off motors
+           analogWrite (LmotorB,0);                                // turn off motors
+           analogWrite (RmotorA,0);                                // turn off motors
+           analogWrite (RmotorB,0);                                // turn off motors
+         }else{
+           Serialread();
+           Leftmode=data;
+           //Serial.print("left mode: ");
+           //Serial.println(data);
+           Serialread();
          
-         if(data < 80 && LeftPWM < 10 && data > LeftPWM){
-          shoveLeft = true; 
-         }
+           if(data < 80 && LeftPWM < 10 && data > LeftPWM){
+             shoveLeft = true; 
+           }
 
-         LeftPWM=data;
-         LastReadLeftPWM = data;
-         Serialread();
-         Rightmode=data;
-         Serialread();
+           LeftPWM=data;
+           LastReadLeftPWM = data;
+           Serialread();
+           Rightmode=data;
+           Serialread();
          
-         if(data < 80 && RightPWM < 10 && data > RightPWM){
-            shoveRight = true; 
-         }
-         RightPWM=data;
-         LastReadRightPWM = data;
-         //Serial.println("done reading data");
+           if(data < 80 && RightPWM < 10 && data > RightPWM){
+              shoveRight = true; 
+           }
+           RightPWM=data;
+           LastReadRightPWM = data;
+           //Serial.println("done reading data");
+         } 
          break;
          
        default:                                                // invalid command
