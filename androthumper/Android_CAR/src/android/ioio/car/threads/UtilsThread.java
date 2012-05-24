@@ -1,3 +1,46 @@
+/*******************************************************************************************************
+Copyright (c) 2011
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in
+   the documentation and/or other materials provided with the
+   distribution.
+
+3. All advertising materials mentioning features or use of this
+   software must display the following acknowledgement:
+   "This product includes software developed at the University of
+   Aberystwyth, by Alex Flynn.
+   (http://www.alexflynn2391.mx.x10)."
+
+4. The name of the University may not be used to endorse or promote
+   products derived from this software without specific prior written
+   permission.
+
+5. Redistributions of any form whatsoever must retain the following
+   Acknowledgement:
+   "This product includes software developed at the University of
+   Aberystwyth, by Alex Flynn.
+   (http://www.alexflynn2391.mx.x10)."
+
+THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+IN NO EVENT SHALL THE UNIVERSITY OR THE PROGRAM CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *******************************************************************************************************/
 package android.ioio.car.threads;
 
 import java.io.ByteArrayInputStream;
@@ -28,7 +71,7 @@ import android.widget.Toast;
 import constants.Conts;
 
 /**
- * This class provides means to communication in two ways to the server. It can recieve and transmit messages at the same time.
+ * This class provides means to communication in two ways to the server. It can receive and transmit messages at the same time.
  * It is used for the turning on/off of sensors, and for the phone to send error messages or anything else back to the 
  * server in a byte[] 2000 elements long.
  * @author Alex Flynn
@@ -74,6 +117,10 @@ public class UtilsThread{
 		this.threadManager = threadManager;
 		this.driverManager = driverManager;
 		threadManager.giveUtilities(this);
+		init();
+	}
+	
+	private void init(){
 		try {
 			sendingQueue = new ArrayBlockingQueue<byte[]>(20);
 			socket = new Socket();
@@ -280,41 +327,7 @@ public class UtilsThread{
 		}
 	}
 	public void restart(){
-		try {
-			bytesReceived = 0;
-			socket = new Socket();
-			SocketAddress address = new InetSocketAddress(InetAddress.getByName(threadManager.getIpAddress()), Conts.Ports.UTILS_INCOMMING_PORT);
-			//Connect the socket with a timeout, so IO exception is thrown if the connection is not made in time
-			socket.connect(address, 3000);
-
-			socketInput = socket.getInputStream();
-			socketOutput = socket.getOutputStream();
-			stillConnected = true;
-			running = true;
-
-			checkerThread = new Thread(checkerRunnable);
-			//			checkerThread.start();
-
-			listeningThread = new Thread(listenRunnable);
-			listeningThread.start();
-
-			sendingThread = new Thread(sendRunnable);
-			sendingThread.start();
-
-			Log.e("utils","end of create");
-		}catch (SocketException e) {
-			e.printStackTrace();
-			stillConnected = false;
-			Log.e("utils","error");
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-			stillConnected = false;
-			Log.e("utils","error");
-		} catch (IOException e) {
-			e.printStackTrace();
-			stillConnected = false;
-			Log.e("utils","error");
-		}
+		init();
 	}
 
 	/**True if the server has requested the camera feed, false if otherwise. */
@@ -334,15 +347,6 @@ public class UtilsThread{
 		return gpsStatusEnabled;
 	}
 
-	//	/**Register the {@link GPSThread} for control. */
-	//	public void registerForGPS(GPSThread gps){
-	//		this.gps = gps;
-	//	}
-	//	/**Register the {@link Sensors_thread} for control. */
-	//	public void registerForSensor(Sensors_thread sensor){
-	//		this.sensors = sensor;
-	//	}
-
 	/**Runnable for the {@link #listeningThread}*/
 	private Runnable listenRunnable = new Runnable() {
 		int sizeOfData = -1;
@@ -361,31 +365,35 @@ public class UtilsThread{
 							//bab.append(data, bytesReceived, result);
 							bab.write(data, 0, result);
 							bytesReceived+=result;
+							
+							//If we have recieved more than 4 bytes, translate it into an int, and read this many bytes.
 							if(bytesReceived > 4 && sizeOfData == -1){
 								byte[] data1 = bab.toByteArray();
 								byte[] size = new byte[4];
+								//Copy 0-4 bytes to new array
 								System.arraycopy(data1, 0, size, 0, 4);
+								//Open byte array and data stream on those 4 bytes
 								ByteArrayInputStream bais = new ByteArrayInputStream(size);
 								DataInputStream dis = new DataInputStream(bais);
+								//read those 4 bytes as an int. Reset the data stream, and write the remainder of the
+								//first lot of data.
 								sizeOfData = dis.readInt();
 								bab.reset();
 								bab.write(data, 4, data1.length-4);
 								bytesReceived-=4;
 							}else{
+								//The size isnt one, so just write the rest into the stream.
 								bab.write(data, 0, result);
 							}
+							
+							//By here, the stream should have ALL the data in it.
 							if(bytesReceived == sizeOfData){
 								processData(bab.toByteArray());
-								//bab.clear();
 								bab.reset();
 								bytesReceived = 0;
 								sizeOfData = -1;
 							}
 						}
-						/**
-						 * TODO
-						 * rewrite with first bytes being size of current information, allowing lots of wayponits and huge messages
-						 */
 					}
 				}catch(IOException e){
 					lostConnection();

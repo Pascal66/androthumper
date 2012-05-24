@@ -50,6 +50,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.LinkedList;
 
 import constants.Conts;
 
@@ -58,6 +59,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.ioio.car.listeners.MySensorListener;
 import android.util.Log;
 
 /* code based on: 
@@ -85,11 +87,13 @@ public class Sensors_thread implements SensorEventListener {
 	private boolean changed = false;
 	//private UtilsThread utils;
 	private ThreadManager manager;
+	private LinkedList<MySensorListener> sensorListeners;
 	
 	private SensorManager mSensorManager = null;	
 
     Sensors_thread(ThreadManager manager){
     	this.manager = manager;
+    	sensorListeners = new LinkedList<MySensorListener>();
     	mSensorManager = (SensorManager)manager.getMainActivity().getSystemService(Context.SENSOR_SERVICE);   
     	
     	try{
@@ -113,6 +117,9 @@ public class Sensors_thread implements SensorEventListener {
 		} catch (SocketException e) {
 			e.printStackTrace();
 		}
+    }
+    public void addSensorLisener(MySensorListener listener){
+    	sensorListeners.add(listener);
     }
     
     /**Send data packet to the server. */
@@ -173,6 +180,7 @@ public class Sensors_thread implements SensorEventListener {
     			z_A = values[2] *100;
     			changed = true;
     		}
+    		
 		}else if(event.sensor.getType() == Sensor.TYPE_ORIENTATION){
     		if((values[0] * 100) != x_O){
     			x_O = values[0] *100;
@@ -192,6 +200,10 @@ public class Sensors_thread implements SensorEventListener {
 			if(manager.getUtilitiesThread().isConnected()){
 				send_data_UDP();
 				changed = false;
+				for(MySensorListener listener:sensorListeners){
+					listener.gotNewAccelerometerData(x_A, y_A, z_A);
+					listener.gotNewOrientationData(x_O, y_O, z_O);
+				}
 			}else{
 				disableSensors();
 			}

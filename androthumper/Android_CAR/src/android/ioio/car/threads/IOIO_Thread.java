@@ -1,8 +1,5 @@
 /*******************************************************************************************************
-Copyright (c) 2011 Regents of the University of California.
-All rights reserved.
-
-This software was developed at the University of California, Irvine.
+Copyright (c) 2011
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -17,20 +14,20 @@ are met:
    distribution.
 
 3. All advertising materials mentioning features or use of this
-   software must display the following acknowledgment:
+   software must display the following acknowledgement:
    "This product includes software developed at the University of
-   California, Irvine by Nicolas Oros, Ph.D.
-   (http://www.cogsci.uci.edu/~noros/)."
+   Aberystwyth, by Alex Flynn.
+   (http://www.alexflynn2391.mx.x10)."
 
 4. The name of the University may not be used to endorse or promote
    products derived from this software without specific prior written
    permission.
 
 5. Redistributions of any form whatsoever must retain the following
-   acknowledgment:
+   Acknowledgement:
    "This product includes software developed at the University of
-   California, Irvine by Nicolas Oros, Ph.D.
-   (http://www.cogsci.uci.edu/~noros/)."
+   Aberystwyth, by Alex Flynn.
+   (http://www.alexflynn2391.mx.x10)."
 
 THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
 IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
@@ -58,10 +55,12 @@ import ioio.lib.api.exception.IncompatibilityException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import android.ioio.car.listeners.MyCompassListener;
+import android.ioio.car.listeners.MyGPSListener;
 import android.util.Log;
 import constants.Conts;
 
@@ -74,27 +73,36 @@ import constants.Conts;
  *
  */
 public class IOIO_Thread{
-	/** Subclasses should use this field for controlling the IOIO. */
-	protected IOIO ioio;	
-
+	/** The class that does the actual controlling and manipulation of the ioio. */
 	private IOIOThread ioioThread;
+	/**Input data that the ioioThread uses. */
 	private byte[] input = new byte[Conts.PacketSize.MOVE_PACKET_SIZE];
-
+	/**New input data that is provided by outside sources. */
+	private byte[] newInput = new byte[Conts.PacketSize.MOVE_PACKET_SIZE];
+	/**The manager for this thread. */
 	private ThreadManager manager;
+	/**A list of {@link MyCompassListener}'s. */
 	private List<MyCompassListener> compassListeners;
+	/**A list of {@link MyGPSListener}'s. */
+	private List<MyGPSListener> gpsListeners;
+	/**The current heading reported by the compass. */
 	private float heading;
 
+	/**Create a new IOIO managing class, and start it. */
 	IOIO_Thread(ThreadManager manager){
 		this.manager = manager;
 		compassListeners = new LinkedList<MyCompassListener>();
-		ioioThread = new IOIOThread();
-		ioioThread.start();
+		start();
 	}
 
+	/**Abort the connection to the ioio and remove any listeners. */
 	public void abort(){
 		ioioThread.abort();
+		compassListeners.clear();
+		gpsListeners.clear();
 	}
 
+	/**Start the connection and running of the ioio. */
 	public void start(){
 		ioioThread = new IOIOThread();
 		ioioThread.start();
@@ -108,31 +116,51 @@ public class IOIO_Thread{
 		if(input.length != Conts.PacketSize.MOVE_PACKET_SIZE){
 			Log.e("IOIO","Wrong input, got: "+Conts.Tools.getStringFromByteArray(input));
 		}else{
-			this.input = input;
+			this.newInput = input;
 		}
 	}
 
+	/**Add a compass listener to recieve the new headings from the ioio. */
 	public void addCompassListener(MyCompassListener listener){
 		compassListeners.add(listener);
+	}
+	public void addGpsListener(MyGPSListener listener){
+		gpsListeners.add(listener);
 	}
 
 	/**
 	 * IOIO Thread. This contains the declarations and implementations of methods specific to the communication
 	 * and controlling of the ioio board. The implementation that follows is specific to a required set-up. As such,
-	 * you must either duplication my project set-up, or edit this to match your own.
+	 * you must either duplicate my project set-up, or edit this to match your own.
 	 * @author Alex Flynn
 	 *
 	 */
 	private class IOIOThread implements Runnable{
+		/**The transmit pin of the compass UART module */
 		private static final int COMPASS_PIN_TX = 10;
+		/**The receive pin of the compass UART module. */
 		private static final int COMPASS_PIN_RX = 9;
+		/**The communications baud rate of the compass UART module. */
 		private static final int COMPASS_BAUD = 9600;
+		/**The delay between reading compass headings to give the compass time to compensate tilt. */
 		private static final int COMPASS_READ_TIME = 200;
 		
+		/**Combination of bytes that tell WTC to write the battery level to its output stream. */
 		private final byte[] READ_BATTERY = new byte[]{'B','L'};
+		/**Combination of bytes that tell the WTC to start charging. */
 		private final byte[] START_CHARGE = new byte[]{'G','C'};
+		/**Combination of bytes that tell the motor driver how to control its motors. */
 		private byte[] MOTOR_DATA = new byte[6];
+		/**Byte of {@link #MOTOR_DATA} to set the left speed. */
+		private static final int MOTOR_LEFT_SPEED=3;
+		/**Byte of {@link #MOTOR_DATA} to set the right speed. */
+		private static final int MOTOR_RIGHT_SPEED=5;
+		/**Byte of {@link #MOTOR_DATA} to set the left mode. */
+		private static final int MOTOR_LEFT_MODE=2;
+		/**Byte of {@link #MOTOR_DATA} to set the right mode. */
+		private static final int MOTOR_RIGHT_MODE = 4;
 		
+		private IOIO ioio;
 		private Thread thread;
 		private OutputStream motorOs,compassOs;
 		private InputStream motorIs,compassIs;
@@ -144,6 +172,11 @@ public class IOIO_Thread{
 
 		private boolean connected = false,stopRequest = false,stop = false,driverChanged = false, isCharging = false;
 
+		/*
+		 *  Inspiration and the structure of this connect/setup loop was provided by 
+		 *  University of California, Irvine by Nicolas Oros, Ph.D.
+		 * (http://www.cogsci.uci.edu/~noros/).
+		 */
 		@Override
 		public void run() {
 			while(!stop){
@@ -191,7 +224,7 @@ public class IOIO_Thread{
 
 				//Commands to send to the motor driver. Documented in WTC source.
 				MOTOR_DATA[0]='H';MOTOR_DATA[1]='B';
-				MOTOR_DATA[2] = 0;MOTOR_DATA[3] = 0;MOTOR_DATA[4] = 0; MOTOR_DATA[5] = 0;
+				MOTOR_DATA[MOTOR_LEFT_SPEED] = 0;MOTOR_DATA[MOTOR_LEFT_MODE] = 0;MOTOR_DATA[MOTOR_RIGHT_SPEED] = 0; MOTOR_DATA[MOTOR_RIGHT_MODE] = 0;
 			} catch (ConnectionLostException e) {
 				e.printStackTrace();
 			}
@@ -205,7 +238,8 @@ public class IOIO_Thread{
 				manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.GOT_IOIO_CONNECTION);
 			}
 			connected = true;
-			//Simply turn on the test LED. This is used to signify right/left controllers (it only lights
+			input = Arrays.copyOf(newInput, Conts.PacketSize.MOVE_PACKET_SIZE);
+			//Turn on the test LED. This is used to signify right/left controllers (it only lights
 			// on left) and that the ioio is still listening.
 			if(input[Conts.Controller.Buttons.BUTTON_A] == 0){
 				testLED.write(true);
@@ -228,8 +262,8 @@ public class IOIO_Thread{
 							//-1,-1
 							//Uh oh, WTC says the battery is getting low.
 							manager.getUtilitiesThread().sendMessage("WTC reports low volts!");
-							//toggle switch to allow switch to auto-charge.
-							sendMessage(START_CHARGE);
+							//TODO toggle switch to allow switch to auto-charge.
+							sendMessageToDriver(START_CHARGE);
 							isCharging = true;
 							break;
 						}
@@ -241,24 +275,24 @@ public class IOIO_Thread{
 			}
 
 			if(!isCharging && !stopRequest){
-				if(MOTOR_DATA[3] != input[Conts.Controller.Channel.LEFT_CHANNEL]){
-					MOTOR_DATA[3] = input[Conts.Controller.Channel.LEFT_CHANNEL];
+				if(MOTOR_DATA[MOTOR_LEFT_SPEED] != input[Conts.Controller.Channel.LEFT_CHANNEL]){
+					MOTOR_DATA[MOTOR_LEFT_SPEED] = input[Conts.Controller.Channel.LEFT_CHANNEL];
 					driverChanged = true;
 				}
-				if(MOTOR_DATA[2] != input[Conts.Controller.Channel.LEFT_MODE]){
-					MOTOR_DATA[2] = input[Conts.Controller.Channel.LEFT_MODE];
+				if(MOTOR_DATA[MOTOR_LEFT_MODE] != input[Conts.Controller.Channel.LEFT_MODE]){
+					MOTOR_DATA[MOTOR_LEFT_MODE] = input[Conts.Controller.Channel.LEFT_MODE];
 					driverChanged = true;
 				}
-				if(MOTOR_DATA[5] != input[Conts.Controller.Channel.RIGHT_CHANNEL]){
-					MOTOR_DATA[5] = input[Conts.Controller.Channel.RIGHT_CHANNEL];
+				if(MOTOR_DATA[MOTOR_RIGHT_SPEED] != input[Conts.Controller.Channel.RIGHT_CHANNEL]){
+					MOTOR_DATA[MOTOR_RIGHT_SPEED] = input[Conts.Controller.Channel.RIGHT_CHANNEL];
 					driverChanged = true;
 				}
-				if(MOTOR_DATA[4] != input[Conts.Controller.Channel.RIGHT_MODE]){
-					MOTOR_DATA[4] = input[Conts.Controller.Channel.RIGHT_MODE];
+				if(MOTOR_DATA[MOTOR_RIGHT_MODE] != input[Conts.Controller.Channel.RIGHT_MODE]){
+					MOTOR_DATA[MOTOR_RIGHT_MODE] = input[Conts.Controller.Channel.RIGHT_MODE];
 					driverChanged = true;
 				}else if(stopRequest){
-					MOTOR_DATA[3] = 0;
-					MOTOR_DATA[5] = 0;
+					MOTOR_DATA[MOTOR_LEFT_SPEED] = 0;
+					MOTOR_DATA[MOTOR_RIGHT_SPEED] = 0;
 					driverChanged = true;
 					stopRequest = false;
 					stop = true;
@@ -267,7 +301,7 @@ public class IOIO_Thread{
 				if(driverChanged){
 					driverChanged = false;
 					//Log.e("IOIO","Write motor buff: "+byteArrayToString(MOTOR_DATA));
-					sendMessage(MOTOR_DATA);
+					sendMessageToDriver(MOTOR_DATA);
 				}	
 			}else{
 				//We are charging. Check if we are still charging. If we are, sleep. Else, wake up
@@ -286,6 +320,7 @@ public class IOIO_Thread{
 			}
 		}
 
+		/**Read the data from the compass module. */
 		public void getCompassData(){
 			if((System.currentTimeMillis() - compassLastReadTime) > COMPASS_READ_TIME){
 				try{
@@ -297,13 +332,12 @@ public class IOIO_Thread{
 					for(MyCompassListener listener:compassListeners){
 						listener.gotCompassHeading(heading);
 					}
-				}catch(IOException e){
-
-				}
+				}catch(IOException e){}
 			}
 		}
 
-		private void sendMessage(byte[] data){
+		/**Send a byte[] message to the motor driver via the output stream in UART module. */
+		private void sendMessageToDriver(byte[] data){
 			try {
 				motorOs.write(data);
 			} catch (IOException e) {
@@ -311,6 +345,7 @@ public class IOIO_Thread{
 			}
 		}
 		
+		/**Get the level of batteries from the motor driver. */
 		private double getBatteryLevel(){
 			try {
 				motorOs.write(READ_BATTERY);
@@ -328,10 +363,12 @@ public class IOIO_Thread{
 			return batteryLevel;
 		}
 
-		public void abort(){
+		/**Ask the ioio to stop. Issue stop request, stopping all connected devices. */
+		private void abort(){
 			stopRequest = true;
 		}
-		public void start(){
+		/**Connect to all devices and start the main loop. */
+		private void start(){
 			thread = new Thread(this);
 			thread.start();
 		}
