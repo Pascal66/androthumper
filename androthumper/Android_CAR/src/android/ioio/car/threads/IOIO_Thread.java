@@ -59,6 +59,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import android.ioio.car.hardware.GpsModule;
 import android.ioio.car.listeners.MyCompassListener;
 import android.ioio.car.listeners.MyGPSListener;
 import android.util.Log;
@@ -99,7 +100,6 @@ public class IOIO_Thread{
 	public void abort(){
 		ioioThread.abort();
 		compassListeners.clear();
-		gpsListeners.clear();
 	}
 
 	/**Start the connection and running of the ioio. */
@@ -169,6 +169,7 @@ public class IOIO_Thread{
 		private Uart compass;
 		private long compassLastReadTime = System.currentTimeMillis();
 		private double batteryLevel = 0;
+		private GpsModule gpsModule;
 
 		private boolean connected = false,stopRequest = false,stop = false,driverChanged = false, isCharging = false;
 
@@ -215,7 +216,7 @@ public class IOIO_Thread{
 		private void setup(){
 			try {
 				testLED = ioio.openDigitalOutput(IOIO.LED_PIN);
-				driver = ioio.openUart(5, 4, 9600, Parity.NONE, StopBits.ONE);
+				driver = ioio.openUart(7, 6, 9600, Parity.NONE, StopBits.ONE);
 				compass = ioio.openUart(COMPASS_PIN_RX, COMPASS_PIN_TX, COMPASS_BAUD, Parity.NONE, StopBits.TWO);
 				compassOs = compass.getOutputStream();
 				compassIs = compass.getInputStream();
@@ -225,6 +226,9 @@ public class IOIO_Thread{
 				//Commands to send to the motor driver. Documented in WTC source.
 				MOTOR_DATA[0]='H';MOTOR_DATA[1]='B';
 				MOTOR_DATA[MOTOR_LEFT_SPEED] = 0;MOTOR_DATA[MOTOR_LEFT_MODE] = 0;MOTOR_DATA[MOTOR_RIGHT_SPEED] = 0; MOTOR_DATA[MOTOR_RIGHT_MODE] = 0;
+				
+				gpsModule = new GpsModule(manager,ioio);
+				gpsModule.startListening();
 			} catch (ConnectionLostException e) {
 				e.printStackTrace();
 			}
@@ -249,6 +253,7 @@ public class IOIO_Thread{
 			}
 
 			getCompassData();
+			gpsModule.tick();
 
 			//Check for any messages from WTC
 			try {

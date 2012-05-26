@@ -1,6 +1,8 @@
 package android.ioio.car.listeners;
 
+import android.ioio.car.hardware.GpsModule.GpsModuleData;
+
 public interface MyGPSListener {
 
-	public void gotNewGPSCoords(float lat, float lng);
+	public void gotNewGPSData(GpsModuleData newData);
 }
