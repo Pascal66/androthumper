@@ -73,17 +73,39 @@ public class Window extends javax.swing.JFrame {
         utils = new Utils(this);
         new SensorThread(this);
         moveThread = new MovementThread(this);
-        
-        int[] err = utils.getErrorBits(-121);
-        StringBuilder sb = new StringBuilder();
-        for(int i = 7; i > -1; i--){
-        	if(err[i] == 1){
-        		sb.append("1,");
-        	}else{
-        		sb.append("0,");
-        	}
-        }
-        System.out.println(sb+": "+err[8]);
+        proces1s("5225.1402");
+        process("00404.8984");
+    }
+    
+    private void process(String soemthiong){
+    	System.out.println("WAS: "+soemthiong);
+    	
+    	char[] chars = soemthiong.toCharArray();
+//    	char temp = chars[3];
+//    	chars[3] = '.';
+//    	chars[4] = temp;
+    	
+		int bigNum = Integer.valueOf(new String(chars, 0, 3));
+		float rem = Float.valueOf(new String(chars,3,6));
+		
+		System.out.println("big: "+bigNum);
+		System.out.println("rem: "+rem);
+		System.out.println("done: "+((bigNum)+(rem/60)));
+    }
+    private void proces1s(String soemthiong){
+    	System.out.println("WAS: "+soemthiong);
+    	
+    	char[] chars = soemthiong.toCharArray();
+//    	char temp = chars[3];
+//    	chars[3] = '.';
+//    	chars[4] = temp;
+    	
+		int bigNum = Integer.valueOf(new String(chars, 0, 2));
+		float rem = Float.valueOf(new String(chars,2,6));
+		
+		System.out.println("big: "+bigNum);
+		System.out.println("rem: "+rem);
+		System.out.println("done: "+((bigNum)+(rem/60)));
     }
 
     /**

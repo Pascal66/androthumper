@@ -46,6 +46,7 @@ package android.ioio.car.threads;
 import ioio.lib.api.DigitalOutput;
 import ioio.lib.api.IOIO;
 import ioio.lib.api.IOIOFactory;
+import ioio.lib.api.TwiMaster;
 import ioio.lib.api.Uart;
 import ioio.lib.api.Uart.Parity;
 import ioio.lib.api.Uart.StopBits;
@@ -60,8 +61,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import android.ioio.car.hardware.GpsModule;
+import android.ioio.car.hardware.WTC;
 import android.ioio.car.listeners.MyCompassListener;
 import android.ioio.car.listeners.MyGPSListener;
+import android.test.MoreAsserts;
 import android.util.Log;
 import constants.Conts;
 
@@ -89,6 +92,7 @@ public class IOIO_Thread{
 	/**The current heading reported by the compass. */
 	private float heading;
 
+	private boolean debug = true;
 	/**Create a new IOIO managing class, and start it. */
 	IOIO_Thread(ThreadManager manager){
 		this.manager = manager;
@@ -144,32 +148,29 @@ public class IOIO_Thread{
 		private static final int COMPASS_BAUD = 9600;
 		/**The delay between reading compass headings to give the compass time to compensate tilt. */
 		private static final int COMPASS_READ_TIME = 200;
-		
+
 		/**Combination of bytes that tell WTC to write the battery level to its output stream. */
 		private final byte[] READ_BATTERY = new byte[]{'B','L'};
 		/**Combination of bytes that tell the WTC to start charging. */
 		private final byte[] START_CHARGE = new byte[]{'G','C'};
-		/**Combination of bytes that tell the motor driver how to control its motors. */
-		private byte[] MOTOR_DATA = new byte[6];
-		/**Byte of {@link #MOTOR_DATA} to set the left speed. */
-		private static final int MOTOR_LEFT_SPEED=3;
-		/**Byte of {@link #MOTOR_DATA} to set the right speed. */
-		private static final int MOTOR_RIGHT_SPEED=5;
-		/**Byte of {@link #MOTOR_DATA} to set the left mode. */
-		private static final int MOTOR_LEFT_MODE=2;
-		/**Byte of {@link #MOTOR_DATA} to set the right mode. */
-		private static final int MOTOR_RIGHT_MODE = 4;
 		
+		private final byte[] SET_AUTO_VOLTS_CHECKING_ON = new byte[]{'E','C'};
+		private final byte[] SET_AUTO_VOLTS_CHECKING_OFF = new byte[]{'D','C'};
+
 		private IOIO ioio;
 		private Thread thread;
-		private OutputStream motorOs,compassOs;
-		private InputStream motorIs,compassIs;
+		private OutputStream compassOs;
+		private InputStream compassIs;
 		private DigitalOutput testLED;
-		private Uart driver;
+		private TwiMaster TwiDriver;
 		private Uart compass;
 		private long compassLastReadTime = System.currentTimeMillis();
 		private double batteryLevel = 0;
 		private GpsModule gpsModule;
+		private WTC wtc;
+		boolean readAll = true;
+		long lastSendTime = System.currentTimeMillis();
+		byte[] emptyArray = new byte[0];
 
 		private boolean connected = false,stopRequest = false,stop = false,driverChanged = false, isCharging = false;
 
@@ -202,10 +203,10 @@ public class IOIO_Thread{
 						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.LOST_IOIO_CONNECTION);
 					}
 				} catch (InterruptedException e) {
-//					if(connected){
-//						connected = false;
-//						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.LOST_IOIO_CONNECTION);
-//					}
+					//					if(connected){
+					//						connected = false;
+					//						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.LOST_IOIO_CONNECTION);
+					//					}
 				}
 			}
 		}
@@ -216,19 +217,16 @@ public class IOIO_Thread{
 		private void setup(){
 			try {
 				testLED = ioio.openDigitalOutput(IOIO.LED_PIN);
-				driver = ioio.openUart(7, 6, 9600, Parity.NONE, StopBits.ONE);
 				compass = ioio.openUart(COMPASS_PIN_RX, COMPASS_PIN_TX, COMPASS_BAUD, Parity.NONE, StopBits.TWO);
 				compassOs = compass.getOutputStream();
 				compassIs = compass.getInputStream();
-				motorOs = driver.getOutputStream();
-				motorIs = driver.getInputStream();
 
-				//Commands to send to the motor driver. Documented in WTC source.
-				MOTOR_DATA[0]='H';MOTOR_DATA[1]='B';
-				MOTOR_DATA[MOTOR_LEFT_SPEED] = 0;MOTOR_DATA[MOTOR_LEFT_MODE] = 0;MOTOR_DATA[MOTOR_RIGHT_SPEED] = 0; MOTOR_DATA[MOTOR_RIGHT_MODE] = 0;
+				TwiDriver = ioio.openTwiMaster(2,TwiMaster.Rate.RATE_100KHz, false);
 				
-				gpsModule = new GpsModule(manager,ioio);
-				gpsModule.startListening();
+				wtc = new WTC(TwiDriver);
+				
+				//gpsModule = new GpsModule(manager,ioio);
+				//gpsModule.startListening();
 			} catch (ConnectionLostException e) {
 				e.printStackTrace();
 			}
@@ -249,79 +247,39 @@ public class IOIO_Thread{
 				testLED.write(true);
 			}else{
 				testLED.write(false);
-				getBatteryLevel();
+				//getBatteryLevel();
 			}
 
 			getCompassData();
-			gpsModule.tick();
+			//gpsModule.tick();
+			wtc.tick();
 
-			//Check for any messages from WTC
-			try {
-				if(motorIs.available()>0){
-					byte[] message = new byte[2];
-					motorIs.read(message);
-					switch(message[0]){
-					case -1:
-						switch(message[1]){
-						case -1:
-							//-1,-1
-							//Uh oh, WTC says the battery is getting low.
-							manager.getUtilitiesThread().sendMessage("WTC reports low volts!");
-							//TODO toggle switch to allow switch to auto-charge.
-							sendMessageToDriver(START_CHARGE);
-							isCharging = true;
-							break;
-						}
-						break;
-					}
-				}
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
 
 			if(!isCharging && !stopRequest){
-				if(MOTOR_DATA[MOTOR_LEFT_SPEED] != input[Conts.Controller.Channel.LEFT_CHANNEL]){
-					MOTOR_DATA[MOTOR_LEFT_SPEED] = input[Conts.Controller.Channel.LEFT_CHANNEL];
-					driverChanged = true;
-				}
-				if(MOTOR_DATA[MOTOR_LEFT_MODE] != input[Conts.Controller.Channel.LEFT_MODE]){
-					MOTOR_DATA[MOTOR_LEFT_MODE] = input[Conts.Controller.Channel.LEFT_MODE];
-					driverChanged = true;
-				}
-				if(MOTOR_DATA[MOTOR_RIGHT_SPEED] != input[Conts.Controller.Channel.RIGHT_CHANNEL]){
-					MOTOR_DATA[MOTOR_RIGHT_SPEED] = input[Conts.Controller.Channel.RIGHT_CHANNEL];
-					driverChanged = true;
-				}
-				if(MOTOR_DATA[MOTOR_RIGHT_MODE] != input[Conts.Controller.Channel.RIGHT_MODE]){
-					MOTOR_DATA[MOTOR_RIGHT_MODE] = input[Conts.Controller.Channel.RIGHT_MODE];
-					driverChanged = true;
-				}else if(stopRequest){
-					MOTOR_DATA[MOTOR_LEFT_SPEED] = 0;
-					MOTOR_DATA[MOTOR_RIGHT_SPEED] = 0;
-					driverChanged = true;
+				if(stopRequest){
+					input[Conts.Controller.Channel.LEFT_MODE] = 1;
+					input[Conts.Controller.Channel.RIGHT_MODE] = 1;
+					wtc.provideInput(input);
+					wtc.forceTick();
 					stopRequest = false;
 					stop = true;
-				}
-
-				if(driverChanged){
-					driverChanged = false;
-					//Log.e("IOIO","Write motor buff: "+byteArrayToString(MOTOR_DATA));
-					sendMessageToDriver(MOTOR_DATA);
+				}else{
+					wtc.provideInput(input);
 				}	
 			}else{
 				//We are charging. Check if we are still charging. If we are, sleep. Else, wake up
 				//toggle on UI for asleep, uncheck to call interrupt. 
-				if(getBatteryLevel() > 8){
-					//Done!
-					isCharging = false;
-					manager.getUtilitiesThread().sendMessage("Done charging!");
-				}else{
-					try {
-						Thread.sleep(60000);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
+//				if(getBatteryLevel() > 8){
+//					//Done!
+//					isCharging = false;
+//					manager.getUtilitiesThread().sendMessage("Done charging!");
+//				}else{
+//					try {
+//						Thread.sleep(60000);
+//					} catch (InterruptedException e) {
+//						e.printStackTrace();
+//					}
+//				}
 			}
 		}
 
@@ -339,33 +297,6 @@ public class IOIO_Thread{
 					}
 				}catch(IOException e){}
 			}
-		}
-
-		/**Send a byte[] message to the motor driver via the output stream in UART module. */
-		private void sendMessageToDriver(byte[] data){
-			try {
-				motorOs.write(data);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		/**Get the level of batteries from the motor driver. */
-		private double getBatteryLevel(){
-			try {
-				motorOs.write(READ_BATTERY);
-				if(motorIs.available()>0){
-					int highByte = motorIs.read();
-					int lowByte = motorIs.read();
-					int thumperBattery = highByte << 8 | lowByte;
-					double realBatt = thumperBattery/68.3f;
-					batteryLevel = realBatt;
-					manager.getUtilitiesThread().sendMessage("Battery level: "+batteryLevel);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			return batteryLevel;
 		}
 
 		/**Ask the ioio to stop. Issue stop request, stopping all connected devices. */

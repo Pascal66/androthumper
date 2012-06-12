@@ -11,7 +11,7 @@ public class ZeemoteDriver implements Driver{
 	private DriverManager driverManager;
 	private boolean running = false;
 	private byte[] input = new byte[Conts.PacketSize.MOVE_PACKET_SIZE];
-	private boolean debug = true;
+	private boolean debug = false;
 	
 	public ZeemoteDriver(DriverManager driverManager){
 		this.driverManager = driverManager;
