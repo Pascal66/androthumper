@@ -17,7 +17,7 @@ boolean shoveLeft = true;
 boolean shoveRight = true;
 int leftShoveCount = 0;
 int rightShoveCount = 0;
-byte requestCode;
+byte requestCode,recieveCode;
 int highVolts;
 int startVolts;
 int Leftspeed=0;
@@ -31,6 +31,14 @@ byte Leftmodechange=0;                                        // Left input must
 byte Rightmodechange=0;                                       // Right input must be 1500 before brake or reverse can occur
 int LeftPWM;                                                  // PWM value for left  motor speed / brake
 int RightPWM;                                                 // PWM value for right motor speed / brake
+int leftI2CSpeed;
+int leftI2CMode;
+int rightI2CSpeed;
+int rightI2CMode;
+int leftRcSpeed;
+int leftRcMode;
+int rightRcSpeed;
+int rightRcMode;
 int LastReadLeftPWM;
 int LastReadRightPWM;
 int data;
@@ -53,35 +61,41 @@ void setup()
 {
   //------------------------------------------------------------ Initialize Servos ----------------------------------------------------
 
-  Servo0.attach(S0);                                          // attach servo to I/O pin
-  Servo1.attach(S1);                                          // attach servo to I/O pin
-  Servo2.attach(S2);                                          // attach servo to I/O pin
-  Servo3.attach(S3);                                          // attach servo to I/O pin
-  Servo4.attach(S4);                                          // attach servo to I/O pin
-  Servo5.attach(S5);                                          // attach servo to I/O pin
-  Servo6.attach(S6);                                          // attach servo to I/O pin
+//  Servo0.attach(S0);                                          // attach servo to I/O pin
+//  Servo1.attach(S1);                                          // attach servo to I/O pin
+//  Servo2.attach(S2);                                          // attach servo to I/O pin
+//  Servo3.attach(S3);                                          // attach servo to I/O pin
+//  Servo4.attach(S4);                                          // attach servo to I/O pin
+//  Servo5.attach(S5);                                          // attach servo to I/O pin
+//  Servo6.attach(S6);                                          // attach servo to I/O pin
 
   //------------------------------------------------------------ Set servos to default position ---------------------------------------
 
-  Servo0.writeMicroseconds(DServo0);                          // set servo to default position
-  Servo1.writeMicroseconds(DServo1);                          // set servo to default position
-  Servo2.writeMicroseconds(DServo2);                          // set servo to default position
-  Servo3.writeMicroseconds(DServo3);                          // set servo to default position
-  Servo4.writeMicroseconds(DServo4);                          // set servo to default position
-  Servo5.writeMicroseconds(DServo5);                          // set servo to default position
-  Servo6.writeMicroseconds(DServo6);                          // set servo to default position
+//  Servo0.writeMicroseconds(DServo0);                          // set servo to default position
+//  Servo1.writeMicroseconds(DServo1);                          // set servo to default position
+//  Servo2.writeMicroseconds(DServo2);                          // set servo to default position
+//  Servo3.writeMicroseconds(DServo3);                          // set servo to default position
+//  Servo4.writeMicroseconds(DServo4);                          // set servo to default position
+//  Servo5.writeMicroseconds(DServo5);                          // set servo to default position
+//  Servo6.writeMicroseconds(DServo6);                          // set servo to default position
 
   //------------------------------------------------------------ Initialize I/O pins --------------------------------------------------
 
   pinMode (Charger,OUTPUT);                                   // change Charger pin to output
   digitalWrite (Charger,CHARGER_DISABLE);                                   // disable current regulator to charge battery
-
-  if (Cmode==1) 
-  {
+  Serial.begin(9600);
+  if (Cmode==1){
     Serial.begin(Brate);                                      // enable serial communications if Cmode=1
     Serial.flush();                                           // flush buffer
-  } 
-  //Serial.begin(57600);
+  }else if(Cmode == 2){        //I2C
+    digitalWrite(I2Cdata,HIGH);
+    digitalWrite(I2Cclk,HIGH);
+    Wire.onReceive(HandleOnRecieve);
+    Wire.onRequest(HandleOnRequest);
+    Wire.begin(1);
+    Serial.println("Started I2C, internal pull-ups, registered recievers, slaved address: 1");
+  }
+
 }
 
 
@@ -116,9 +130,9 @@ void loop(){
 //  is big, ignore this. Or, write a serial command to enter charging mode, ignoring any 
 //  low voltage untill the IOIO drops off the phone, notifying the server.
   
-  if ((Volts<LOW_BATT_VOLTAGE) && (Charged==BATT_CHARGED) && (BATT_AUTO_CHECK==1)){                         // check condition of the battery
+  if ((Volts<LOW_BATT_VOLTAGE) && ((Charged==BATT_LOW) && (BATT_AUTO_CHECK==1))){                         // check condition of the battery
     enableCharge();
-  }
+  }else{
 
   //------------------------------------------------------------ CHARGE BATTERY -------------------------------------------------------
 
@@ -131,10 +145,11 @@ void loop(){
     // --------------------------------------------------------- Code to drive dual "H" bridges --------------------------------------
     doMove();
   }
+  }
 }
 
 void checkCharge(){
-  if(!(Volts > LOW_BATT_VOLTAGE)){
+  if((Volts < LOW_BATT_VOLTAGE)){
     if(Volts-startVolts > 33){            //has charger been connected (voltage increaased by at least 0.5V)?
       if (Volts>highVolts){               // has battery voltage increased?
         highVolts=Volts;                  // record the highest voltage. Used to detect peak charging.
@@ -187,6 +202,7 @@ void checkForInput(){
 void doMove(){
       if (Charged==BATT_CHARGED)                                           // Only power motors if battery voltage is good
     {
+      checkOverride();
       if ((millis()-leftOverloadTime)>OVERLOAD_PAUSE_TIME_MILLIS )             
       {
 //        if(shoveLeft && leftShoveCount < 5){
@@ -214,6 +230,8 @@ void doMove(){
           analogWrite(LmotorB,0);
           break;
         }
+      }else{
+        //Serial.println("Left current spike!");
       }
       if ((millis()-rightOverloadTime)>OVERLOAD_PAUSE_TIME_MILLIS )
       {
@@ -242,10 +260,13 @@ void doMove(){
           analogWrite(RmotorB,0);
           break;
         }
-      } 
+      }else{
+       //Serial.println("Right current spike!"); 
+      }
     }
     else                                                      // Battery is flat
     {
+      //Serial.println("Battery low, stopping all motors!");
       analogWrite (LmotorA,0);                                // turn off motors
       analogWrite (LmotorB,0);                                // turn off motors
       analogWrite (RmotorA,0);                                // turn off motors
@@ -360,11 +381,11 @@ void SCmode(){
          if(Charged==BATT_LOW || Volts<LOW_BATT_VOLTAGE){
            Serial.println("Battery is low!");
            Serial.write(BATT_LOW_MSG,2);
-           Charged=BATT_LOW;
-           analogWrite (LmotorA,0);                                // turn off motors
-           analogWrite (LmotorB,0);                                // turn off motors
-           analogWrite (RmotorA,0);                                // turn off motors
-           analogWrite (RmotorB,0);                                // turn off motors
+//           Charged=BATT_LOW;
+//           analogWrite (LmotorA,0);                                // turn off motors
+//           analogWrite (LmotorB,0);                                // turn off motors
+//           analogWrite (RmotorA,0);                                // turn off motors
+//           analogWrite (RmotorB,0);                                // turn off motors
          }else{
            Serialread();
            Leftmode=data;
@@ -404,14 +425,121 @@ void Serialread() {//---------------------------------------------------------- 
 }
 
 void I2Cmode(){//----------------------------------------------------------- Your code goes here ------------------------------------------------------------
-  Wire.onReceive(HandleOnRecieve);
-  Wire.onRequest(HandleOnRequest);
-  Wire.begin(1);
+//  Wire.onReceive(HandleOnRecieve);
+//  Wire.onRequest(HandleOnRequest);
+//  Wire.begin(1);
+}
+
+void checkOverride(){
+  int override = pulseIn(RCOverride,HIGH,25000);
+  if(override > 1800){
+    //Serial.println("using Mode2");
+    //steering = ch2 (A2)
+    //speed = ch3 (D0)
+    
+    int steer = pulseIn(RCInput3,HIGH,25000);
+    int sped = pulseIn(RCInput1,HIGH,25000);
+    
+    if (abs(steer-1500)<RCdeadband) steer=1500;                
+    if (abs(sped-1500)<RCdeadband) sped=1500;   
+    
+    leftRcMode = rightRcMode = 2;
+    
+    if(sped < (Leftcenter+RCdeadband)){
+      leftRcMode = rightRcMode = 0;
+    }
+    
+    sped = abs(sped-Leftcenter)*10/scale;
+    sped = min(sped,255);
+    leftRcSpeed = rightRcSpeed = sped;
+    if(sped < 20){
+      //rotate
+      if(steer < (Leftcenter+RCdeadband)){
+        //right
+        rightRcMode = 0;
+        leftRcMode = 2;
+      }else{
+        //left
+        leftRcMode = 0;
+        rightRcMode = 2;
+      }
+      rightRcSpeed = leftRcSpeed = (abs(steer-Leftcenter)*10/scale);
+    }else{
+      if(steer < (Leftcenter+RCdeadband)){
+        //right
+        rightRcSpeed = sped - (abs(steer-Leftcenter)*10/scale);
+        rightRcSpeed = max(rightRcSpeed,0);
+      }else{
+        //left
+        leftRcSpeed = sped - (abs(steer-Leftcenter)*10/scale);
+        leftRcSpeed = max(leftRcSpeed,0);
+      }
+    }
+    
+    Serial.print("RM: ");Serial.print(rightRcMode);Serial.print(" RS: ");Serial.print(rightRcSpeed);Serial.print(" LM: ");Serial.print(leftRcMode);Serial.print(" LS: ");Serial.print(leftRcSpeed);Serial.print(" steer: ");Serial.print(steer);Serial.print(" speed: ");Serial.println(sped);
+    Rightmode = rightRcMode;
+    Leftmode = leftRcMode;
+    LeftPWM = leftRcSpeed;
+    RightPWM = rightRcSpeed;
+  }else if(override > 1400){
+    //Serial.println("Using Mode1");
+    //right = ch1 (D1)
+    //left = ch3 (D0)
+    int left =  pulseIn(RCInput1,HIGH,25000);
+    int right = pulseIn(RCInput2,HIGH,25000);
+    
+    leftRcMode=2;
+    rightRcMode=2;
+    if (left<(Leftcenter+RCdeadband)) leftRcMode=0;          // if left input is forward then set left mode to forward
+    if (right<(Rightcenter+RCdeadband)) rightRcMode=0;       // if right input is forward then set right mode to forward
+
+    leftRcSpeed=abs(left-Leftcenter)*10/scale;                 // scale 1000-2000uS to 0-255
+    leftRcSpeed=min(leftRcSpeed,255);                                   // set maximum limit 255
+
+    rightRcSpeed=abs(right-Rightcenter)*10/scale;              // scale 1000-2000uS to 0-255
+    rightRcSpeed=min(rightRcSpeed,255);                                 // set maximum limit 255
+    
+    //Serial.print("left: ");Serial.print(left);Serial.print(" right: ");Serial.println(right);
+    Serial.print("RM: ");Serial.print(rightRcMode);Serial.print(" RS: ");Serial.print(rightRcSpeed);Serial.print(" LM: ");Serial.print(leftRcMode);Serial.print(" LS: ");Serial.println(leftRcSpeed);
+    RightPWM = rightRcSpeed;
+    LeftPWM = leftRcSpeed;
+    Leftmode = leftRcMode;
+    Rightmode = rightRcMode;
+  }else{
+    //Serial.println("Using I2C");
+    LeftPWM = leftI2CSpeed;
+    Leftmode = leftI2CMode;
+    RightPWM = rightI2CSpeed;
+    Rightmode = rightI2CMode;
+    
+  }
+  
 }
 
 //This is when the master has addressed this controller as a slave, and has send 'bytes' amount of data. First byte is always a command code.
 void HandleOnRecieve(int bytes){
-  requestCode = Wire.read();
+  recieveCode = Wire.read();
+  
+  switch(recieveCode){
+   case Hello:
+     //Master has said hello...
+     break; 
+   case MotorComms:
+     if(true){
+     Serial.println("Recieved I2C motor commands");
+     //Recieved new data about the motors
+     Leftmode = Wire.read();
+     LeftPWM = Wire.read();
+     Rightmode = Wire.read();
+     RightPWM = Wire.read();
+//      while(Wire.available() > 0){
+//         Serial.print(Wire.read());Serial.print(" , "); 
+//      }
+      Serial.print(Leftmode);Serial.print(" , ");Serial.print(LeftPWM);Serial.print(" , ");Serial.print(Rightmode);Serial.print(" , ");Serial.println(RightPWM);
+     //doMove();
+     }
+     break;
+  }
   
   if(requestCode == Hello){
     //Master says hello.. but thats it.

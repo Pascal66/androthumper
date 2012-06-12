@@ -1,7 +1,7 @@
 //=================================== MODE OF COMMUNICATIONS ========================================================================
 
-#define Cmode                1     // Sets communication mode: 0=RC    1=Serial    2=I2C
-#define Brate                9600     // Baud rate for serial communications
+#define Cmode                2     // Sets communication mode: 0=RC    1=Serial    2=I2C
+#define Brate                115200     // Baud rate for serial communications
 
 
 
@@ -10,11 +10,12 @@
 #define Mix                  1     // Set to 1 if L/R and F/R signals from RC need to be mixed
 #define Leftcenter        1500     // when RC inputs are centered then input should be 1.5mS
 #define Rightcenter       1500     // when RC inputs are centered then input should be 1.5mS
-#define RCdeadband          35     // inputs do not have to be perfectly centered to stop motors
+#define RCdeadband          50     // inputs do not have to be perfectly centered to stop motors
 #define scale               12     // scale factor for RC signal to PWM
 
 //=======================================I2C COMMS=============================================
 #define Hello              1
+#define MotorComms         2
 
 //=================================== BATTERY CHARGER SETTINGS ======================================================================
 

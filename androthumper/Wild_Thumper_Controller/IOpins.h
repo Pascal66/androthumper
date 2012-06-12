@@ -7,6 +7,14 @@
 #define RCleft              0  // Digital input 0
 #define RCright             1  // Digital input 1
 
+#define I2Cdata             18
+#define I2Cclk              19
+
+#define RCOverride          15
+#define RCInput1            0
+#define RCInput2            17
+#define RCInput3            16
+
 #define S0                  2  // Servo output 00
 #define S1                  4  // Servo output 01
 #define S2                  7  // Servo output 02
