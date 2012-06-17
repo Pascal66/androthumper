@@ -42,6 +42,7 @@ int rightRcMode;
 int LastReadLeftPWM;
 int LastReadRightPWM;
 int data;
+int newi2c = 0;
 int servo[7];
 
 byte BATT_LOW_MSG[2] = {-1,-1};
@@ -432,6 +433,7 @@ void I2Cmode(){//----------------------------------------------------------- You
 
 void checkOverride(){
   int override = pulseIn(RCOverride,HIGH,25000);
+
   if(override > 1800){
     //Serial.println("using Mode2");
     //steering = ch2 (A2)
@@ -476,7 +478,7 @@ void checkOverride(){
       }
     }
     
-    Serial.print("RM: ");Serial.print(rightRcMode);Serial.print(" RS: ");Serial.print(rightRcSpeed);Serial.print(" LM: ");Serial.print(leftRcMode);Serial.print(" LS: ");Serial.print(leftRcSpeed);Serial.print(" steer: ");Serial.print(steer);Serial.print(" speed: ");Serial.println(sped);
+    //Serial.print("RM: ");Serial.print(rightRcMode);Serial.print(" RS: ");Serial.print(rightRcSpeed);Serial.print(" LM: ");Serial.print(leftRcMode);Serial.print(" LS: ");Serial.print(leftRcSpeed);Serial.print(" steer: ");Serial.print(steer);Serial.print(" speed: ");Serial.println(sped);
     Rightmode = rightRcMode;
     Leftmode = leftRcMode;
     LeftPWM = leftRcSpeed;
@@ -500,18 +502,22 @@ void checkOverride(){
     rightRcSpeed=min(rightRcSpeed,255);                                 // set maximum limit 255
     
     //Serial.print("left: ");Serial.print(left);Serial.print(" right: ");Serial.println(right);
-    Serial.print("RM: ");Serial.print(rightRcMode);Serial.print(" RS: ");Serial.print(rightRcSpeed);Serial.print(" LM: ");Serial.print(leftRcMode);Serial.print(" LS: ");Serial.println(leftRcSpeed);
+    //Serial.print("RM: ");Serial.print(rightRcMode);Serial.print(" RS: ");Serial.print(rightRcSpeed);Serial.print(" LM: ");Serial.print(leftRcMode);Serial.print(" LS: ");Serial.println(leftRcSpeed);
     RightPWM = rightRcSpeed;
     LeftPWM = leftRcSpeed;
     Leftmode = leftRcMode;
     Rightmode = rightRcMode;
   }else{
     //Serial.println("Using I2C");
+    if(newi2c == 1){
+      Serial.print("new I2C: ");Serial.print(leftI2CMode);Serial.print(" , ");Serial.print(leftI2CSpeed);Serial.print(" , ");Serial.print(rightI2CMode);Serial.print(" , ");Serial.println(rightI2CSpeed);
+    }
     LeftPWM = leftI2CSpeed;
     Leftmode = leftI2CMode;
     RightPWM = rightI2CSpeed;
     Rightmode = rightI2CMode;
-    
+    newi2c = 0;
+    //Serial.println("Got I2C commands");
   }
   
 }
@@ -519,25 +525,21 @@ void checkOverride(){
 //This is when the master has addressed this controller as a slave, and has send 'bytes' amount of data. First byte is always a command code.
 void HandleOnRecieve(int bytes){
   recieveCode = Wire.read();
-  
+  //Serial.println("Recieved I2C data");
   switch(recieveCode){
    case Hello:
      //Master has said hello...
      break; 
    case MotorComms:
-     if(true){
-     Serial.println("Recieved I2C motor commands");
+     //Serial.println("Recieved I2C motor commands");
      //Recieved new data about the motors
-     Leftmode = Wire.read();
-     LeftPWM = Wire.read();
-     Rightmode = Wire.read();
-     RightPWM = Wire.read();
-//      while(Wire.available() > 0){
-//         Serial.print(Wire.read());Serial.print(" , "); 
-//      }
-      Serial.print(Leftmode);Serial.print(" , ");Serial.print(LeftPWM);Serial.print(" , ");Serial.print(Rightmode);Serial.print(" , ");Serial.println(RightPWM);
+     leftI2CMode = Wire.read();
+     leftI2CSpeed = Wire.read();
+     rightI2CMode = Wire.read();
+     rightI2CSpeed = Wire.read();
+     newi2c = 1;
+     //Serial.print(Leftmode);Serial.print(" , ");Serial.print(LeftPWM);Serial.print(" , ");Serial.print(Rightmode);Serial.print(" , ");Serial.println(RightPWM);
      //doMove();
-     }
      break;
   }
   
