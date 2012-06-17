@@ -47,7 +47,7 @@ public class GpsModule {
 	private OutputStream os;
 	private Uart uart;
 	private String TAG = "GpsModule";
-	private boolean listening = false,debug = true;
+	private boolean listening = false,debug = false;
 	private List<MyGPSListener> listeners;
 	private ThreadManager manager;
 
@@ -134,7 +134,9 @@ public class GpsModule {
 							//hit the new line
 							if(line != null){
 								line = new String(baos.toByteArray(),"US-ASCII");
-								Log.e(TAG,"done: "+line);
+								if(debug){
+									Log.e(TAG,"done: "+line);
+								}
 							}else{
 								line = new String();
 							}

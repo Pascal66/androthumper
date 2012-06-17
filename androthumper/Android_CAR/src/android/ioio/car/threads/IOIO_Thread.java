@@ -171,6 +171,7 @@ public class IOIO_Thread{
 		boolean readAll = true;
 		long lastSendTime = System.currentTimeMillis();
 		byte[] emptyArray = new byte[0];
+		boolean wtcResult;
 
 		private boolean connected = false,stopRequest = false,stop = false,driverChanged = false, isCharging = false;
 
@@ -203,10 +204,10 @@ public class IOIO_Thread{
 						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.LOST_IOIO_CONNECTION);
 					}
 				} catch (InterruptedException e) {
-					//					if(connected){
-					//						connected = false;
-					//						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.LOST_IOIO_CONNECTION);
-					//					}
+					if(connected){
+						connected = false;
+						manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.LOST_IOIO_CONNECTION);
+					}
 				}
 			}
 		}
@@ -225,8 +226,8 @@ public class IOIO_Thread{
 				
 				wtc = new WTC(TwiDriver);
 				
-				//gpsModule = new GpsModule(manager,ioio);
-				//gpsModule.startListening();
+				gpsModule = new GpsModule(manager,ioio);
+				gpsModule.startListening();
 			} catch (ConnectionLostException e) {
 				e.printStackTrace();
 			}
@@ -236,6 +237,7 @@ public class IOIO_Thread{
 		 * This is the main ioio loop, which is ran every tick.
 		 */
 		private void loop() throws ConnectionLostException{
+			wtcResult = false;
 			if(!connected){
 				manager.getUtilitiesThread().sendCommand(Conts.UtilsCodes.IOIO.GOT_IOIO_CONNECTION);
 			}
@@ -251,22 +253,22 @@ public class IOIO_Thread{
 			}
 
 			getCompassData();
-			//gpsModule.tick();
-			wtc.tick();
+			gpsModule.tick();
+			wtcResult = wtc.tick();
 
 
-			if(!isCharging && !stopRequest){
+			if(!isCharging && !stopRequest && !stop){
+				wtc.provideInput(input);
+			}else{
 				if(stopRequest){
 					input[Conts.Controller.Channel.LEFT_MODE] = 1;
 					input[Conts.Controller.Channel.RIGHT_MODE] = 1;
 					wtc.provideInput(input);
-					wtc.forceTick();
-					stopRequest = false;
-					stop = true;
-				}else{
-					wtc.provideInput(input);
-				}	
-			}else{
+					if(wtcResult){
+						stopRequest = false;
+						stop = true;
+					}
+				}
 				//We are charging. Check if we are still charging. If we are, sleep. Else, wake up
 				//toggle on UI for asleep, uncheck to call interrupt. 
 //				if(getBatteryLevel() > 8){

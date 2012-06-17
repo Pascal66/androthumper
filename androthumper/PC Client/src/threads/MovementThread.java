@@ -136,7 +136,7 @@ public class MovementThread implements Runnable{
 
 			}
 
-			System.out.println("Sending: "+byteArrayToString(input));
+			//System.out.println("Sending: "+byteArrayToString(input));
 			packet.setData(input);
 			try {
 				socket.send(packet);

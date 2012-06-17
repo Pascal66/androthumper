@@ -23,7 +23,7 @@ public class BasicServerDriver implements Driver{
 	private DriverManager driverManager;
 	private DatagramSocket socket;
 	private Thread listeningThread;
-	private boolean listening = false;
+	private boolean listening = false,debug = false;
 	
 	BasicServerDriver(DriverManager manager){
 		this.driverManager = manager;
@@ -55,6 +55,9 @@ public class BasicServerDriver implements Driver{
 					if(data.length != Conts.PacketSize.MOVE_PACKET_SIZE){
 						Log.e("BASIC_SERVER_DRIVER","Wrong length!");
 					}else{
+						if(debug){
+							Log.e("BASIC DRIVER","Recieved: "+Conts.Tools.getStringFromByteArray(data));
+						}
 						driverManager.getThreadManager().getIOIOThread().override(data);
 					}
 				} catch (IOException e) {

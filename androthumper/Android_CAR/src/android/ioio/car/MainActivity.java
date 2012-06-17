@@ -46,10 +46,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
 package android.ioio.car;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.util.LinkedList;
 
 import android.app.Activity;
@@ -78,7 +74,6 @@ import android.widget.ListView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
-import com.zeemote.zc.event.ButtonEvent;
 import com.zeemote.zc.ui.HiddenState;
 import com.zeemote.zc.ui.IProcessingDialogStateListener;
 import com.zeemote.zc.ui.MessageDialogState;
@@ -86,8 +81,6 @@ import com.zeemote.zc.ui.ProcessingDialogState;
 import com.zeemote.zc.ui.State;
 import com.zeemote.zc.ui.StateManager;
 import com.zeemote.zc.ui.UserChoiceState;
-
-import constants.Conts;
 
 /**
  * This is the main entry point of the program. It handles the connection to the Zeemotes,
@@ -105,9 +98,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 	private SurfaceHolder holder;
 	private AlertDialog dialog;
 	private Button connectZeemotes;
-	private boolean override = false;
 	private boolean gotControllers = false;
-
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {		
 		super.onCreate(savedInstanceState);
@@ -132,9 +123,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 		controlToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 			@Override
 			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-				override = isChecked;
 				if(isChecked){
-					if(gotControllers){
+					if(gotControllers){										
 						final MyZSpyApplication app = (MyZSpyApplication)getApplicationContext();
 						app.addMyListener(driverManager.getZeemoteDriver());
 						Toast.makeText(MainActivity.this, "Started Zeemote driver.", Toast.LENGTH_SHORT).show();

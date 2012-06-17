@@ -21,7 +21,7 @@ public class WTC {
 	private static final int MOTOR_RIGHT_MODE = 3;
 	
 	/**How long to wait before sending another load of data down the bus. */
-	private static final int TICK_TIME = 500;
+	private static final int TICK_TIME = 50;
 	/**The address of the WTC on the bus. */
 	private static final int WTC_BUS_ADDR = 1;
 	
@@ -41,6 +41,7 @@ public class WTC {
 	private byte[] expectedResponse = null;
 	/**Byte[] response for the motor command. This should always be an empty array. */
 	private byte[] motorResponse = new byte[0];
+	private boolean debug = false;
 	
 	public WTC(TwiMaster busMaster){
 		MOTOR_DATA[0]=2;
@@ -59,9 +60,6 @@ public class WTC {
 		MOTOR_DATA[MOTOR_LEFT_MODE] = 	input[Conts.Controller.Channel.LEFT_MODE];
 		MOTOR_DATA[MOTOR_RIGHT_SPEED] = input[Conts.Controller.Channel.RIGHT_CHANNEL];
 		MOTOR_DATA[MOTOR_RIGHT_MODE] = 	input[Conts.Controller.Channel.RIGHT_MODE];
-
-		//MOTOR_DATA[MOTOR_LEFT_MODE] = 1;
-		//MOTOR_DATA[MOTOR_RIGHT_MODE] = 1;
 	}
 	
 	/**
@@ -121,7 +119,9 @@ public class WTC {
 	/**Send the data to the WTC. */
 	private void sendData(){
 		try {
-			Log.e("Sending: ",""+Conts.Tools.getStringFromByteArray(MOTOR_DATA));
+			if(debug){
+				Log.e("Sending: ",""+Conts.Tools.getStringFromByteArray(MOTOR_DATA));
+			}
 			busMaster.writeRead(WTC_BUS_ADDR, false, MOTOR_DATA, MOTOR_DATA.length, motorResponse, 0);
 			
 			if(newCommand){
