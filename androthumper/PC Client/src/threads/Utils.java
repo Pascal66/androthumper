@@ -141,7 +141,7 @@ public class Utils{
 			}
 			break;
 		default:
-			System.out.println("PC: Not sure what that was..."+Conts.Tools.getStringFromByteArray(data));
+			//System.out.println("PC: Not sure what that was..."+Conts.Tools.getStringFromByteArray(data));
 		}
 	}
 	

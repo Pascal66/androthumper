@@ -56,18 +56,14 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
 import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import org.apache.http.util.ByteArrayBuffer;
-
-import android.app.Activity;
 import android.ioio.car.drivers.DriverManager;
+import android.ioio.car.providers.ProviderManager;
 import android.util.Log;
 import android.widget.Toast;
-
 import constants.Conts;
 
 /**
@@ -124,7 +120,7 @@ public class UtilsThread{
 		try {
 			sendingQueue = new ArrayBlockingQueue<byte[]>(20);
 			socket = new Socket();
-			SocketAddress address = new InetSocketAddress(InetAddress.getByName(threadManager.getIpAddress()), Conts.Ports.UTILS_INCOMMING_PORT);
+			SocketAddress address = new InetSocketAddress(InetAddress.getByName(ProviderManager.getIpAddress()), Conts.Ports.UTILS_INCOMMING_PORT);
 			//Connect the socket with a timeout, so IO exception is thrown if the connection is not made in time
 			socket.connect(address, 3000);
 
@@ -224,32 +220,14 @@ public class UtilsThread{
 			}
 			break;
 		case Conts.UtilsCodes.Command.Enable.ENABLE_GPS:
-			if(!gpsEnabled){
-				threadManager.getGPSThread().enableLocation();
-				gpsEnabled = true;
-				sendMessage("PHONE - Enable location");
-			}
+			ProviderManager.getGpsProvider().enable();
+			ProviderManager.getGpsProvider().enableSendingToServer();
+			sendMessage("PHONE - Enable location");
 			break;
 		case Conts.UtilsCodes.Command.Disable.DISABLE_GPS:
-			if(gpsEnabled){
-				threadManager.getGPSThread().disableLocation();
-				gpsEnabled = false;
-				sendMessage("PHONE - Disable location");
-			}
-			break;
-		case Conts.UtilsCodes.Command.Enable.ENABLE_GPS_STATUS:
-			if(!gpsStatusEnabled){
-				threadManager.getGPSThread().enableGPSStatus();
-				gpsStatusEnabled = true;
-				sendMessage("PHONE - Enable GPS status");
-			}
-			break;
-		case Conts.UtilsCodes.Command.Disable.DISABLE_GPS_STATUS:
-			if(gpsStatusEnabled){
-				threadManager.getGPSThread().disableGPSStatus();
-				gpsStatusEnabled = false;
-				sendMessage("PHONE - Disable GPS Status");
-			}
+			ProviderManager.getGpsProvider().disable();
+			ProviderManager.getGpsProvider().disableSendingToServer();
+			sendMessage("PHONE - Disable location");
 			break;
 		case Conts.UtilsCodes.Command.Enable.ENABLE_SENSORS:
 			if(!sensorsEnabled){

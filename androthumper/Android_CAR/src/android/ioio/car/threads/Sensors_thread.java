@@ -52,15 +52,14 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.LinkedList;
 
-import constants.Conts;
-
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.ioio.car.listeners.MySensorListener;
-import android.util.Log;
+import android.ioio.car.providers.ProviderManager;
+import constants.Conts;
 
 /* code based on: 
  * IBMEyes.java
@@ -77,7 +76,8 @@ import android.util.Log;
 public class Sensors_thread implements SensorEventListener {
 	
 	/**Logging tag. */
-    private static final String tag = "Sensors";
+    @SuppressWarnings("unused")
+	private static final String tag = "Sensors";
 	/**The socket to send the packets from. */
 	private DatagramSocket socket;	
 	/**A packet to store information to send to the server. */
@@ -85,7 +85,6 @@ public class Sensors_thread implements SensorEventListener {
 	private float x_O, y_O, z_O, x_A, y_A, z_A;
 	private short ix_O, iy_O, iz_O, ix_A, iy_A, iz_A;
 	private boolean changed = false;
-	//private UtilsThread utils;
 	private ThreadManager manager;
 	private LinkedList<MySensorListener> sensorListeners;
 	
@@ -98,7 +97,7 @@ public class Sensors_thread implements SensorEventListener {
     	
     	try{
     		socket = new DatagramSocket();
-    		packet = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(manager.getIpAddress()), Conts.Ports.SENSOR_INCOMING_PORT);
+    		packet = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(ProviderManager.getIpAddress()), Conts.Ports.SENSOR_INCOMING_PORT);
     	}catch (Exception e){
     		e.printStackTrace();
     	}
@@ -159,10 +158,7 @@ public class Sensors_thread implements SensorEventListener {
 	}
 
 	@Override
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		// TODO Auto-generated method stub
-		
-	}
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {

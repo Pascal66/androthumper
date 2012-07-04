@@ -28,9 +28,7 @@ public class Conts {
 		/**Size of the movement packet. 10 bytes for buttons,  1 byte for left speed, 1 byte for right speed, one byte for left mode, one byte for right mode.*/
 		public static final int MOVE_PACKET_SIZE = 14;
 		/** CODE + 8 bytes for double lat, 8 bytes for double lng, 8 bytes for double altitude, 4 bytes for float speed, 4 bytes for float accuracy*/
-		public static final int GPS_POSITION_PACKET_SIZE = 33;
-		/** CODE + 6 sats * (4bytes for SNR, 1 byte for used in prn, 1byte for used (1 used, 0 not used)*/
-		public static final int GPS_STATUS_PACKET_SIZE = 37;
+		public static final int GPS_PACKET_SIZE = 100;
 		/**One for code, one for new driver. */
 		public static final int CHANGE_DRIVER_PACKET_SIZE = 2;
 	}
@@ -41,8 +39,6 @@ public class Conts {
 			public static class Enable{
 				/**Code to enable location updates. */
 				public static final byte ENABLE_GPS = 0;
-				/**Code to enable GPS status updates. */
-				public static final byte ENABLE_GPS_STATUS = 6;
 				/**Code to enable camera feed. */
 				public static final byte ENABLE_CAM = 2;
 				/**Code to enable sensors. */
@@ -52,8 +48,6 @@ public class Conts {
 			public static class Disable{
 				/**Code to disable location updates. */
 				public static final byte DISABLE_GPS = 1;
-				/**Code to disable GPS status updates. */
-				public static final byte DISABLE_GPS_STATUS = 7;
 				/**Code to disable camera feed. */
 				public static final byte DISABLE_CAM = 3;
 				/**Code to disable sensors. */

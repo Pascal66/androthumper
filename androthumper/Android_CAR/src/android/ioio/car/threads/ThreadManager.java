@@ -47,6 +47,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package android.ioio.car.threads;
 
 import android.ioio.car.MainActivity;
+import android.ioio.car.providers.ProviderManager;
 
 
 /**
@@ -63,24 +64,23 @@ public class ThreadManager{
 	private IOIO_Thread ioio_thread_;
 	private UtilsThread utilsThread;
 	/**The GPS and location feed to the server. */
-	private GPSThread gpsThread;
+	private AndroidGPS androidGps;
 	
 	private MainActivity app;
-	private String ipAddress;
 	
 	/**
 	 * Get a new ThreadManager, creating instances of all the threads, and starting them
 	 * @param app - The host application
 	 * @param ip - The ip of the server to connect to
 	 */
-	public ThreadManager(MainActivity app, String ip_address){	
-		this.ipAddress = ip_address;
+	public ThreadManager(MainActivity app){	
+
 		this.app = app;
 		//TODO write restart
 		the_cam = new Cam_thread(this);
 		the_sensors = new Sensors_thread(this);
 		ioio_thread_ = new IOIO_Thread(this);
-		gpsThread = new GPSThread(this);	
+		androidGps = new AndroidGPS(this, ProviderManager.getGpsProvider());	
 	}
     
 	/**
@@ -90,8 +90,7 @@ public class ThreadManager{
     	the_cam.stop_thread();
     	the_sensors.stop();
 		ioio_thread_.abort();
-    	gpsThread.disableLocation();
-    	gpsThread.disableGPSStatus();
+    	androidGps.disable();
     }
     
     /**Restart all the threads. */
@@ -116,14 +115,11 @@ public class ThreadManager{
     public UtilsThread getUtilitiesThread(){
     	return this.utilsThread;
     }
-    public GPSThread getGPSThread(){
-    	return this.gpsThread;
+    public AndroidGPS getGPSThread(){
+    	return this.androidGps;
     }
     
     public MainActivity getMainActivity(){
     	return this.app;
-    }
-    public String getIpAddress(){
-    	return ipAddress;
     }
 }

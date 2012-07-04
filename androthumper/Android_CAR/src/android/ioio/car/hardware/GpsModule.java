@@ -1,26 +1,27 @@
 package android.ioio.car.hardware;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.LinkedList;
-import java.util.List;
-
-import constants.Conts;
-
-import android.graphics.AvoidXfermode;
-import android.ioio.car.listeners.MyGPSListener;
-import android.ioio.car.threads.ThreadManager;
-import android.location.Location;
-import android.util.Log;
-
 import ioio.lib.api.IOIO;
 import ioio.lib.api.Uart;
 import ioio.lib.api.exception.ConnectionLostException;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import android.ioio.car.providers.GPSProvider;
+import android.ioio.car.threads.ThreadManager;
+import android.location.Location;
+import android.util.Log;
+import constants.Conts;
+import constants.GpsData;
+
+/**Represents the facilities provided by the hardware GPS module. This is connected to the IOIO via serial. This provides
+ * data to the GPS provider.
+ * @author Alex
+ *
+ */
 public class GpsModule {
 	/**Update rate. */
 	public static final String PMTK_SET_NMEA_UPDATE_1HZ = "$PMTK220,1000*1F";
@@ -38,30 +39,50 @@ public class GpsModule {
 	/**Turn off output. */
 	public static final String PMTK_SET_NMEA_OUTPUT_OFF = "$PMTK314,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28";
 
+	/**The host IOIO. */
 	private IOIO ioio;
+	/**The receiving pin on the IOIO. */
 	public static final int GPS_PIN_RX = 3;
+	/**The transmitting pin on the module. */
 	public static final int GPS_PIN_TX = 4;
+	/**The baud rate of the serial connection. */
 	public static final int GPS_BAUD = 9600;
 
+	/**Input stream to read the data from the module. */
 	private InputStream is;
+	/**The output stream to write to the module. */
 	private OutputStream os;
+	/**The serial connection to the module. */
 	private Uart uart;
+	/**Debug tag. */
 	private String TAG = "GpsModule";
-	private boolean listening = false,debug = false;
-	private List<MyGPSListener> listeners;
+	/**Boolean flag signifying whether the module is listening for GPS updates. */
+	private boolean listening = false;
+	/**A debug flag. */
+	private boolean debug = false;
 	private ThreadManager manager;
 
 	private String line = null;
 	private String GPRMC = null, GPGGA = null;
 	private GpsModuleData data = null;
 	private ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	private GPSProvider provider;
+	private float compassHeading;
 
-	public GpsModule(ThreadManager manager, IOIO ioio){
+	public GpsModule(ThreadManager manager, IOIO ioio, GPSProvider provider){
 		this.ioio = ioio;
 		this.manager = manager;
+		this.provider = provider;
+		provider.assignDevice(this);
 		restart();
 	}
+	
+	public void provideCompassHeading(float heading){
+		compassHeading = heading;
+	}
 
+	/**Send a command to the module. 
+	 * @param command - String - The command to send to the module.*/
 	public void sendCommand(String command){
 		command+="\r\n";
 		try {
@@ -72,18 +93,23 @@ public class GpsModule {
 		}
 	}
 
+	/**Enable the module. Start it listening. */
 	public void startListening(){
 		listening = true;
 		if(debug){
 			manager.getUtilitiesThread().sendMessage("GPS Module: Start listening.");
 		}
 	}
+
+	/**Disable the module. Stop is listening. */
 	public void stopListening(){
 		listening = false;
 		if(debug){
 			manager.getUtilitiesThread().sendMessage("GPS Module: Stop listening.");
 		}
 	}
+
+	/**Abort the module. After this, the module must be reinitialized or restarted. */
 	public void abort(){
 		try {
 			if(debug){
@@ -91,7 +117,6 @@ public class GpsModule {
 			}
 
 			listening = false;
-			listeners.clear();
 			is.close();
 			os.close();
 			uart.close();
@@ -99,8 +124,9 @@ public class GpsModule {
 			e.printStackTrace();
 		}
 	}
+
+	/**Restart the module and set its default parameters. */
 	public void restart(){
-		listeners = new LinkedList<MyGPSListener>();
 		try {
 			uart = this.ioio.openUart(GPS_PIN_RX, GPS_PIN_TX, GPS_BAUD, Uart.Parity.NONE, Uart.StopBits.ONE);
 			is = uart.getInputStream();
@@ -121,7 +147,9 @@ public class GpsModule {
 		}
 	}
 
-	public String read(){
+	/**Read data from the module. Returns null if there is not a complete line to return.
+	 * @return - String - The line that was read from the module.*/
+	private String read(){
 		if(debug){
 			Log.e(TAG,"reading");
 		}
@@ -161,23 +189,24 @@ public class GpsModule {
 		return null;
 	}
 
+	/**Attempt to read data from the module, and if it is a complete line, provide the data to the GPS provider. */
 	public void tick(){
-		if(debug){
-			manager.getUtilitiesThread().sendMessage("tick");
-			Log.e(TAG,"tick");
-		}
-		parse(read());
-		if(GPGGA != null && GPRMC != null){
-			if(debug && data != null){
-				data.printDebug();
+		if(listening){
+			if(debug){
+				manager.getUtilitiesThread().sendMessage("tick");
+				Log.e(TAG,"tick");
 			}
-			for(MyGPSListener listener:listeners){
-				listener.gotNewGPSData(data);
+			parse(read());
+			if(GPGGA != null && GPRMC != null){
+				if(debug && data != null){
+					data.printDebug();
+				}
+				provider.provideData(this, data);
 			}
 		}
-
 	}
 
+	/**Parse a line into the GPS data. */
 	private void parse(String input){
 		if(input == null){return;}
 		if(data == null){
@@ -212,52 +241,72 @@ public class GpsModule {
 		}
 	}
 
-	public void addListener(MyGPSListener listener){
-		listeners.add(listener);
-	}
-	public void removeListener(MyGPSListener listener){
-		listeners.remove(listener);
-	}
+	public class GpsModuleData implements GpsData{
+		private Location location = new Location("ME");
+		private int lockedSatelites,lockStrength;
+		private boolean lock;
+		private float accuracy,heading,speed;
 
-	public class GpsModuleData{
-		public Location location = new Location("ME");
-		public long latE6,lngE6;
-		public int lockedSatelites,lockStrength;
-		public boolean lock;
-		public float accuracy,altitude,heading,speed;
+		private ByteArrayOutputStream baos = null;
+		private DataOutputStream dos = null;
 
-		private char temp;
-		private char[] chars;
 		private StringBuilder stringBuilder = new StringBuilder();
 
-		public void setLocked(String locked){
+		public byte[] getRawData(){
+			if(baos == null){
+				baos = new ByteArrayOutputStream();
+				dos = new DataOutputStream(baos);
+			}
+			baos.reset();
+
+			try {
+				//dos.write(Conts.UtilsCodes.DataType.GPS_POSITION_DATA);
+				dos.write(GpsDataWrapper.PROVIDER_GPSMODULE);
+				dos.writeBoolean(lock);
+				dos.writeInt(lockedSatelites);
+				dos.writeInt(lockStrength);
+				dos.writeDouble(location.getLongitude());
+				dos.writeDouble(location.getLatitude());
+				dos.writeFloat(accuracy);
+				dos.writeFloat(compassHeading);
+				dos.writeDouble(location.getAltitude());
+				dos.writeFloat(heading);
+				dos.writeFloat(speed);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			return baos.toByteArray();
+		}
+
+		private void setLocked(String locked){
 			if(locked.equals("A")){
 				lock = true;
 			}else{
 				lock = false;
 			}
 		}
-		public void setLatitude(String data, String about){
+		private void setLatitude(String data, String about){
 			stringBuilder.delete(0, stringBuilder.length());
 
 			if(data.length() > 0){
-		    	char[] chars = data.toCharArray();	    	
+				char[] chars = data.toCharArray();	    	
 				int bigNum = Integer.valueOf(new String(chars, 0, 2));
 				float rem = Float.valueOf(new String(chars,2,6));
-				
+
 				if(about.equals("N") || about.equals("n")){
 					location.setLatitude(((bigNum)+(rem/60f)));
 				}else{
 					location.setLatitude((-(bigNum)+(rem/60f)));
 				}
-				
 			}
 		}
-		public void setLongitude(String data, String about){
+
+		private void setLongitude(String data, String about){
 			stringBuilder.delete(0, stringBuilder.length());
-			
+
 			if(data.length()>0){
-		    	char[] chars = data.toCharArray();
+				char[] chars = data.toCharArray();
 				int bigNum = Integer.valueOf(new String(chars, 0, 3));
 				float rem = Float.valueOf(new String(chars,3,6));	
 				if(about.equals("E") || about.equals("e")){
@@ -265,44 +314,77 @@ public class GpsModule {
 				}else{
 					location.setLongitude((-(bigNum)+(rem/60f)));
 				}
-				
+
 			}
 		}
-		public void setSpeed(String speed){
+		private void setSpeed(String speed){
 			try{
 				this.speed = Float.valueOf(speed);
 			}catch(NumberFormatException e){}
 		}
-		public void setHeading(String heading){
+		private void setHeading(String heading){
 			try{
 				this.heading = Float.valueOf(heading);
 			}catch(NumberFormatException e){}
 		}
-		public void setLockStrength(String strength){
+		private void setLockStrength(String strength){
 			try{
 				lockStrength = Integer.valueOf(strength);
 			}catch(NumberFormatException e){}
 		}
-		public void setNumSats(String numSats){
+		private void setNumSats(String numSats){
 			try{
 				lockedSatelites = Integer.valueOf(numSats);
 			}catch(NumberFormatException e){}
 		}
-		public void setAccuracy(String accuracy){
+		private void setAccuracy(String accuracy){
 			try{
 				this.accuracy = Float.valueOf(accuracy);
 			}catch(NumberFormatException e){}
 		}
-		public void setAltitude(String altitude){
+		private void setAltitude(String altitude){
 			try{
-				this.altitude = Float.valueOf(altitude);
+				location.setAltitude(Double.valueOf(altitude));
 			}catch(NumberFormatException e){}
 		}
 
 		public void printDebug(){
 			Log.e(TAG,"GPS DATA:");
-			Log.e(TAG," Latitude: "+location.getLatitude()+" Longitude: "+location.getLongitude()+" altitude: "+altitude+" heading: "+heading);
+			Log.e(TAG," Latitude: "+location.getLatitude()+" Longitude: "+location.getLongitude()+" altitude: "+location.getAltitude()+" heading: "+heading);
 			Log.e(TAG,"Trusted lock: "+lock+" on "+lockedSatelites+" with accuracy: "+accuracy+" and strength: "+lockStrength);
+		}
+
+		@Override
+		public double getAccuracy() {
+			return (double)this.accuracy;
+		}
+
+		@Override
+		public double getLongitude() {
+			return location.getLongitude();
+		}
+
+		@Override
+		public double getLatitude() {
+			return location.getLatitude();
+		}
+
+		@Override
+		public double getAltitude() {
+			return location.getAltitude();
+		}
+
+		@Override
+		public float getSpeed() {
+			return location.getSpeed();
+		}
+
+		@Override
+		public boolean gotLock(){
+			return lock;
+		}
+		public float getRealHeading(){
+			return 0;//TODO
 		}
 	}
 }

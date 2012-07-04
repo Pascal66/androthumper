@@ -61,9 +61,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 import android.ioio.car.hardware.GpsModule;
+import android.ioio.car.hardware.GpsModule.GpsModuleData;
 import android.ioio.car.hardware.WTC;
 import android.ioio.car.listeners.MyCompassListener;
 import android.ioio.car.listeners.MyGPSListener;
+import android.ioio.car.providers.ProviderManager;
 import android.test.MoreAsserts;
 import android.util.Log;
 import constants.Conts;
@@ -128,9 +130,9 @@ public class IOIO_Thread{
 	public void addCompassListener(MyCompassListener listener){
 		compassListeners.add(listener);
 	}
-	public void addGpsListener(MyGPSListener listener){
-		gpsListeners.add(listener);
-	}
+//	public GpsModuleData getLatestGpsData(){
+//		return ioioThread.gpsModule.getLateseData();
+//	}
 
 	/**
 	 * IOIO Thread. This contains the declarations and implementations of methods specific to the communication
@@ -226,8 +228,8 @@ public class IOIO_Thread{
 				
 				wtc = new WTC(TwiDriver);
 				
-				gpsModule = new GpsModule(manager,ioio);
-				gpsModule.startListening();
+				gpsModule = new GpsModule(manager,ioio, ProviderManager.getGpsProvider());
+
 			} catch (ConnectionLostException e) {
 				e.printStackTrace();
 			}

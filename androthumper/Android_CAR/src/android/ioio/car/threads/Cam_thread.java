@@ -47,21 +47,24 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package android.ioio.car.threads;
 
 import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.zip.Deflater;
 
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 import android.graphics.Bitmap;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
+import android.ioio.car.providers.ProviderManager;
 import android.util.Log;
 import constants.Conts;
 
@@ -109,7 +112,7 @@ public class Cam_thread implements Runnable{
 	private Mat m,dest;
 	private static final String TAG = "IP_cam";
 	/**The colour the circles to draw around features. */
-	//private Scalar circleCol;
+	private Scalar circleCol;
 	/**Packet to hold data to be sent to server. */
 	private DatagramPacket packet;
 
@@ -122,7 +125,7 @@ public class Cam_thread implements Runnable{
 	/**The Utils thread to control the camera. */
 	//private UtilsThread utils;
 	/**A list of features provided by OpenCV. */
-	//private LinkedList<Point> features;
+	private MatOfPoint features;
 	/**A queue of frames to process. */
 	//private BlockingQueue<byte[]> dataQueue;
 	/**Temporary data store from the camera. */
@@ -139,7 +142,7 @@ public class Cam_thread implements Runnable{
 		compressor = new Deflater();
 		compressor.setLevel(Deflater.BEST_COMPRESSION);
 		byteStream = new ByteArrayOutputStream();
-//		circleCol = new Scalar(255, 0, 0);
+		circleCol = new Scalar(255, 0, 0);
 //		dataQueue = new ArrayBlockingQueue<byte[]>(2);
 		processingThread = new Thread(this);
 		processingThread.start();
@@ -149,11 +152,11 @@ public class Cam_thread implements Runnable{
 
 	private void init(){
 		try {			 
-			serverAddr = InetAddress.getByName(manager.getIpAddress());
+			serverAddr = InetAddress.getByName(ProviderManager.getIpAddress());
 			socket = new DatagramSocket();
 			packet = new DatagramPacket(new byte[]{1}, 1, serverAddr,Conts.Ports.CAMERA_INCOMMING_PORT);
 			Camera.Parameters parameters = mCamera.getParameters(); 
-			parameters.setPreviewSize(640,480);
+			parameters.setPreviewSize(320,240);
 
 			//Get a list of preview sizes support. Useful for different devices.
 			//List<Size> sizes = parameters.getSupportedPictureSizes();
@@ -312,16 +315,23 @@ public class Cam_thread implements Runnable{
 				inUse = true;
 				m.put(0, 0, datadata);
 				inUse = false;
-				
+				Imgproc.cvtColor(m, dest, Imgproc.COLOR_YUV420sp2RGB,4);
 				//***FEATURE FINDING***
-				//if(features == null){
-				//	features = new LinkedList<Point>();
-				//}
+				if(features == null){
+					features = new MatOfPoint();
+				}
 				//features.clear();
-				//Imgproc.goodFeaturesToTrack(m, features, 50, 0.1, 5);
-				//for(Point p:features){
-				//	Core.circle(m, p, 5, circleCol, 1);
-				//}
+				Imgproc.cvtColor(dest, dest, Imgproc.COLOR_RGB2GRAY);
+				Imgproc.goodFeaturesToTrack(dest, features, 20, 0.1, 5);
+//				
+//				TermCriteria crit = new TermCriteria();
+//				crit.type = TermCriteria.COUNT;
+//				crit.maxCount = 1;
+//				MatOfPoint2f newFeatures = new MatOfPoint2f();newFeatures.fromList(features.toList());
+//				Imgproc.cornerSubPix(dest, newFeatures, new Size(155,115), new Size(-1,-1), crit);
+				for(Point p:features.toArray()){
+					Core.circle(m, p, 5, circleCol, 1);
+				}
 
 				//Convert and send the image.
 				Imgproc.cvtColor(m, dest, Imgproc.COLOR_YUV420sp2RGB,4);

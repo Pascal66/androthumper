@@ -5,12 +5,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 
-import constants.Conts;
-
 import android.ioio.car.listeners.MyCompassListener;
-import android.ioio.car.listeners.MyLocationListener;
+import android.ioio.car.listeners.MyGPSListener;
+import android.ioio.car.providers.ProviderManager;
 import android.location.Location;
 import android.util.Log;
+import constants.Conts;
+import constants.GpsData;
 
 public class WaypointDriver implements Driver{
 
@@ -33,20 +34,25 @@ public class WaypointDriver implements Driver{
 		currentLocation.setLongitude(-200);
 
 		//register for GPS updates
-		driverManager.getThreadManager().getGPSThread().addMyLocationListener(new MyLocationListener() {
+		ProviderManager.getGpsProvider().addGpsListener(new MyGPSListener() {
 			@Override
-			public void gotNewLocation(Location L) {
+			public void gotNewGPSData(final GpsData newData) {
 				Log.e("recieved:","");
 				synchronized (currentLocation) {
-					currentLocation = L;
+					if(currentLocation == null){
+						currentLocation = new Location("ME");
+					}
+					currentLocation.setLongitude(newData.getLongitude());
+					currentLocation.setLatitude(newData.getLatitude());
+					currentLocation.setAltitude(newData.getAltitude());
 					if(waiting){
 						currentLocation.notify();
 						Log.e("notified:","");
 					}
 				};
-
 			}
 		});
+		
 		//and for compass updates
 		driverManager.getThreadManager().getIOIOThread().addCompassListener(new MyCompassListener() {
 			@Override

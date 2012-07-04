@@ -53,6 +53,7 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.ioio.car.drivers.DriverManager;
+import android.ioio.car.providers.ProviderManager;
 import android.ioio.car.threads.ThreadManager;
 import android.ioio.car.threads.UtilsThread;
 import android.os.AsyncTask;
@@ -157,8 +158,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 		@Override
 		public void onCheckedChanged(CompoundButton buttonView,boolean isChecked) {
 			if(isChecked){
+				ProviderManager.setIpAddress(ip_text.getText().toString());
 				if(threadManager == null){
-					threadManager = new ThreadManager(MainActivity.this, ip_text.getText().toString());
+					threadManager = new ThreadManager(MainActivity.this);
 		        	driverManager = new DriverManager(threadManager);
 		        	utilsThread = new UtilsThread(threadManager,driverManager);
 				}else{

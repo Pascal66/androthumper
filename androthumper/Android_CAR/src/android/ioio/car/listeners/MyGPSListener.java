@@ -1,8 +1,8 @@
 package android.ioio.car.listeners;
 
-import android.ioio.car.hardware.GpsModule.GpsModuleData;
+import constants.GpsData;
 
 public interface MyGPSListener {
 
-	public void gotNewGPSData(GpsModuleData newData);
+	public void gotNewGPSData(GpsData newData);
 }

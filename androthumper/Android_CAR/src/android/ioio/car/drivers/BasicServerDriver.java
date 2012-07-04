@@ -7,14 +7,13 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
-import android.ioio.car.threads.ThreadManager;
+import android.ioio.car.providers.ProviderManager;
 import android.util.Log;
 import android.widget.Toast;
-
 import constants.Conts;
 
 /**
- * This driver recieves data from the server's XBox controller, and uses it to drive to IOIO override the IOIO thread.
+ * This driver receives data from the server's XBox controller, and uses it to drive to IOIO override the IOIO thread.
  * @author Alex
  *
  */
@@ -31,7 +30,7 @@ public class BasicServerDriver implements Driver{
 		//Send a ping to the sever to let it know where we are listening to
 		try {
 			socket = new DatagramSocket();
-			DatagramPacket pingPacket = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(driverManager.getThreadManager().getIpAddress()), Conts.Ports.MOVE_INCOMMING_PORT);
+			DatagramPacket pingPacket = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(ProviderManager.getIpAddress()), Conts.Ports.MOVE_INCOMMING_PORT);
 			socket.send(pingPacket);
 		} catch (SocketException e) {
 			e.printStackTrace();
@@ -90,7 +89,7 @@ public class BasicServerDriver implements Driver{
 	public void restart(){
 		try {
 			socket = new DatagramSocket();
-			DatagramPacket pingPacket = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(driverManager.getThreadManager().getIpAddress()), Conts.Ports.MOVE_INCOMMING_PORT);
+			DatagramPacket pingPacket = new DatagramPacket(new byte[]{1}, 1, InetAddress.getByName(ProviderManager.getIpAddress()), Conts.Ports.MOVE_INCOMMING_PORT);
 			socket.send(pingPacket);
 			start();
 		} catch (SocketException e) {
